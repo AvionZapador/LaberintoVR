@@ -1,20 +1,20 @@
-¿Qué es un algoritmo?; Un tipo de dato; Una secuencia de pasos para resolver un problema;* Un lenguaje de programación; Un componente de hardware
-¿Cuál de estos es un lenguaje de programación?; HTML; Python;* XML; CSS
-¿Qué función tiene el operador "=" en programación?; Comparar dos valores; Asignar un valor a una variable;* Sumar dos números; Verificar si son iguales
-¿Qué significa "depurar" un programa?; Eliminar archivos; Corregir errores;* Escribir código más rápido; Ocultar líneas de código
-¿Cuál es el resultado de 5 % 2 en la mayoría de lenguajes?; 2.5; 1;* 0; 5
-¿Qué tipo de dato representa "verdadero" o "falso"?; Entero; Cadena; Booleano;* Flotante
-¿Cuál es la estructura de control que repite un bloque mientras se cumple una condición?; If; For; While;* Switch
-¿Qué significa "compilar"?; Ejecutar un programa; Traducir código fuente a código máquina;* Corregir errores; Guardar un archivo
-¿Cuál de estos es un bucle en programación?; If; Else; For;* Print
+¿Qué es un algoritmo?; Un tipo de dato;* Una secuencia de pasos para resolver un problema; Un lenguaje de programación; Un componente de hardware
+¿Cuál de estos es un lenguaje de programación?; HTML;* Python; XML; CSS
+¿Qué función tiene el operador "=" en programación?; Comparar dos valores;* Asignar un valor a una variable; Sumar dos números; Verificar si son iguales
+¿Qué significa "depurar" un programa?; Eliminar archivos;* Corregir errores; Escribir código más rápido; Ocultar líneas de código
+¿Cuál es el resultado de 5 % 2 en la mayoría de lenguajes?; 2.5;* 1; 0; 5
+¿Qué tipo de dato representa "verdadero" o "falso"?; Entero; Cadena;* Booleano; Flotante
+¿Cuál es la estructura de control que repite un bloque mientras se cumple una condición?; If; For;* While; Switch
+¿Qué significa "compilar"?; Ejecutar un programa;* Traducir código fuente a código máquina; Corregir errores; Guardar un archivo
+¿Cuál de estos es un bucle en programación?; If; Else;* For; Print
 ¿Qué función tiene un comentario en el código?; Ser ejecutado; Explicar el código;* Almacenar datos; Generar errores
-¿Cuál es la extensión típica de un archivo Python?; .java; .cpp; .py;* .html
-¿Qué operador se usa para comparar si dos valores son iguales?; =; ==;* !=; ===
-¿Cuál es el primer paso para resolver un problema con programación?; Escribir código; Definir el problema;* Ejecutar el programa; Depurar errores
-¿Qué estructura permite tomar decisiones en un programa?; Bucle; Condicional;* Variable; Función
-¿Cuál de estos no es un tipo de dato básico?; Entero; Cadena; Arreglo;* Booleano
-¿Qué se usa para almacenar datos en un programa?; Variable;* Función; Bucle; Condicional
-¿Cuál es la salida de print(3 + 2 * 2) en Python?; 10; 7;* 8; 9
-¿Qué hace el operador "++" en lenguajes como C o Java?; Resta 1; Suma 1;* Multiplica; Compara
-¿Cuál es el propósito de una función en programación?; Repetir código; Reutilizar código;* Almacenar datos; Mostrar mensajes
-¿Qué es un IDE?; Un tipo de dato; Un entorno de desarrollo integrado;* Un lenguaje de programación; Un sistema operativo
+¿Cuál es la extensión típica de un archivo Python?; .java; .cpp;* .py; .html
+¿Qué operador se usa para comparar si dos valores son iguales?; =;* ==; !=; ===
+¿Cuál es el primer paso para resolver un problema con programación?;* Escribir código; Definir el problema; Ejecutar el programa; Depurar errores
+¿Qué estructura permite tomar decisiones en un programa?; Bucle;* Condicional; Variable; Función
+¿Cuál de estos no es un tipo de dato básico?; Entero; Cadena;* Arreglo; Booleano
+¿Qué se usa para almacenar datos en un programa?;* Variable; Función; Bucle; Condicional
+¿Cuál es la salida de print(3 + 2 * 2) en Python?; 10;* 7; 8; 9
+¿Qué hace el operador "++" en lenguajes como C o Java?; Resta 1;* Suma 1; Multiplica; Compara
+¿Cuál es el propósito de una función en programación?; Repetir código;* Reutilizar código; Almacenar datos; Mostrar mensajes
+¿Qué es un IDE?; Un tipo de dato;* Un entorno de desarrollo integrado; Un lenguaje de programación; Un sistema operativo
