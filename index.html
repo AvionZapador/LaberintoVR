@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Laberinto VR de Preguntas :-)</title>
+<style>
+  :root{
+    --bg: #14171c;
+    --panel: #1c2128;
+    --accent: #ff8c1a;
+    --accent2: #3fa7ff;
+    --ok: #33c17a;
+    --bad: #e5484d;
+    --text: #e9edf2;
+    --muted: #8b96a5;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;width:100%;height:100%;background:#000;overflow:hidden;
+    font-family:'Segoe UI',Roboto,system-ui,-apple-system,sans-serif;color:var(--text);}
+  canvas{display:block;}
+
+  #app-canvas{position:fixed;inset:0;}
+
+  .screen{
+    position:fixed;inset:0;z-index:20;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at 50% 20%, #23282f 0%, #0d0f12 70%);
+    padding:24px;
+  }
+  .card{
+    width:min(640px,92vw);
+    background:var(--panel);
+    border:1px solid #2c333d;
+    border-radius:10px;
+    padding:32px 30px;
+    box-shadow:0 20px 60px rgba(0,0,0,.55);
+    max-height:88vh;
+    overflow-y:auto;
+  }
+  .eyebrow{
+    text-transform:uppercase;letter-spacing:.18em;font-size:12px;color:var(--accent);
+    font-weight:700;margin-bottom:6px;
+  }
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:.01em;}
+  h1 span{color:var(--accent);}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:22px;line-height:1.5;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+  .btn{
+    appearance:none;border:none;cursor:pointer;
+    background:var(--accent);color:#1a1200;font-weight:700;
+    padding:13px 22px;border-radius:7px;font-size:15px;
+    letter-spacing:.02em;transition:transform .08s ease, background .15s;
+  }
+  .btn:hover{background:#ffa03d;}
+  .btn:active{transform:scale(.97);}
+  .btn.secondary{background:#2b323c;color:var(--text);}
+  .btn.secondary:hover{background:#38414d;}
+  .btn.ghost{background:transparent;border:1px solid #394252;color:var(--text);}
+  .file-label{
+    display:inline-flex;align-items:center;gap:8px;padding:11px 16px;border-radius:7px;
+    background:#232a33;border:1px dashed #3c4653;color:var(--muted);font-size:13px;cursor:pointer;
+  }
+  .file-label:hover{border-color:var(--accent2);color:var(--text);}
+  #file-name{font-size:12px;color:var(--accent2);}
+  ul.instructions{margin:0 0 20px;padding-left:18px;color:var(--muted);font-size:13.5px;line-height:1.9;}
+  ul.instructions b{color:var(--text);}
+  .divider{height:1px;background:#2c333d;margin:18px 0;}
+  .status{font-size:12px;color:var(--muted);margin-top:10px;min-height:16px;}
+  .status.warn{color:var(--bad);}
+
+  #hint{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+    z-index:15;background:rgba(15,17,20,.72);border:1px solid #2c333d;
+    padding:8px 16px;border-radius:20px;font-size:12.5px;color:var(--muted);
+    letter-spacing:.02em;pointer-events:none;
+  }
+
+  /* end screen */
+  table.results{width:100%;border-collapse:collapse;margin:14px 0 6px;font-size:13px;}
+  table.results th,table.results td{
+    text-align:left;padding:8px 8px;border-bottom:1px solid #2b323c;vertical-align:top;
+  }
+  table.results th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;}
+  .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;}
+  .tag.ok{background:rgba(51,193,122,.15);color:var(--ok);}
+  .tag.bad{background:rgba(229,72,77,.15);color:var(--bad);}
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0;}
+  .stat{background:#232a33;border-radius:8px;padding:12px 10px;text-align:center;}
+  .stat .n{font-size:22px;font-weight:800;}
+  .stat .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+  .stat.ok .n{color:var(--ok);}
+  .stat.bad .n{color:var(--bad);}
+  .stat.accent .n{color:var(--accent);}
+
+  #vr-btn-slot{margin-bottom:4px;}
+  #vr-btn-slot button{
+    position:static !important; width:100%; margin:0 !important;
+    padding:14px !important; border-radius:7px !important; font-size:15px !important;
+    font-weight:700 !important; letter-spacing:.02em;
+  }
+  .hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<canvas id="app-canvas"></canvas>
+
+<!-- PANTALLA DE INICIO -->
+<div class="screen" id="overlay-start">
+  <div class="card">
+    <div class="eyebrow">IES Santa Engracia · STEAM 4.0 - SCS</div>
+    <h1>Laberinto <span>VR</span> de Preguntas :-)</h1>
+    <div class="sub">Un laberinto estilo arcade en realidad virtual para repasar preguntas (por defecto materiales de uso técnico nivel de Secundaria). Responde a los guardianes que encuentres por el camino y cuidado con las momias.</div>
+
+    <ul class="instructions">
+      <li><b>Movimiento:</b> joystick del mando izquierdo para desplazarte, joystick del mando derecho para girar.</li>
+      <li><b>Disparo / seleccionar respuesta:</b> gatillo del mando.</li>
+      <li><b>Momias:</b> dispárales para ganar 1 punto extra. Si te tocan, pierdes 1 punto.</li>
+      <li><b>Preguntas:</b> acércate a un guardián y responde tocando una de las 4 opciones con el rayo del mando.</li>
+    </ul>
+
+    <div class="row">
+      <label class="file-label" for="file-input">
+        📄 Cargar preguntas (.txt) — opcional
+      </label>
+      <input type="file" id="file-input" accept=".txt" class="hidden" />
+      <span id="file-name">Usando 15 preguntas por defecto</span>
+    </div>
+    <div class="row">
+      <label class="file-label" for="music-input">
+        🎵 Cargar música de fondo — opcional
+      </label>
+      <input type="file" id="music-input" accept="audio/*" class="hidden" />
+      <span id="music-name">Música ambiental generada por defecto</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div id="vr-btn-slot"></div>
+    <div class="row" style="margin-top:10px;">
+      <button class="btn secondary" id="btn-desktop" style="flex:1;">🖥️ Probar en modo escritorio (WASD + ratón)</button>
+    </div>
+    <div class="status" id="start-status"></div>
+  </div>
+</div>
+
+<!-- PANTALLA FINAL -->
+<div class="screen hidden" id="overlay-end">
+  <div class="card">
+    <div class="eyebrow">Resultados</div>
+    <h1>Fin de la <span>partida</span></h1>
+    <div class="sub">Este ha sido tu recorrido por el laberinto de materiales técnicos.</div>
+
+    <div class="stat-grid">
+      <div class="stat ok"><div class="n" id="stat-correct">0</div><div class="l">Aciertos</div></div>
+      <div class="stat bad"><div class="n" id="stat-wrong">0</div><div class="l">Fallos</div></div>
+      <div class="stat accent"><div class="n" id="stat-kills">0</div><div class="l">Momias abatidas</div></div>
+      <div class="stat bad"><div class="n" id="stat-hits">0</div><div class="l">Golpes recibidos</div></div>
+    </div>
+    <div class="row" style="justify-content:center;">
+      <div class="stat" style="min-width:160px;">
+        <div class="n" id="stat-total" style="color:var(--accent2);">0</div>
+        <div class="l">Puntuación final</div>
+      </div>
+    </div>
+
+    <table class="results" id="results-table">
+      <thead><tr><th style="width:6%;">#</th><th>Pregunta</th><th>Tu respuesta</th><th style="width:10%;">Resultado</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="divider"></div>
+    <div class="row">
+      <button class="btn" id="btn-share" style="flex:1;">📤 Compartir resultados</button>
+      <button class="btn secondary" id="btn-restart" style="flex:1;">🔁 Volver a jugar</button>
+    </div>
+    <div class="status" id="share-status"></div>
+  </div>
+</div>
+
+<div class="hidden" id="hint">Acércate a un guardián para responder · dispara a las momias</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { VRButton } from 'three/addons/webxr/VRButton.js';
+import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+
+/* =========================================================
+   PREGUNTAS POR DEFECTO — MATERIALES DE USO TÉCNICO (ESO)
+   Formato: pregunta;opcion1;opcion2;opcion3;opcion4
+   El asterisco justo tras el ";" marca la opción correcta.
+========================================================= */
+const DEFAULT_QUESTIONS_TXT = `
+¿Qué material se obtiene fundiendo mineral de hierro en un alto horno?;Bronce;*Fundición (arrabio);Latón;Acero inoxidable
+¿Cuál de los siguientes es un material termoplástico?;Baquelita;Resina de poliéster;*PVC;Melamina
+¿Qué propiedad indica la resistencia de un material a ser rayado?;Elasticidad;Tenacidad;*Dureza;Ductilidad
+¿Qué aleación se forma con cobre y estaño?;Latón;*Bronce;Acero;Duraluminio
+¿Cuál de estos materiales es un elastómero?;Poliestireno;Metacrilato;*Caucho natural;Contrachapado
+¿Qué proceso une dos piezas metálicas fundiendo material de aporte?;Remachado;Atornillado;*Soldadura;Doblado
+¿Qué madera se obtiene encolando láminas finas en capas cruzadas?;Aglomerado;MDF;*Contrachapado;Tablero de fibras
+¿Qué propiedad permite a un material recuperar su forma tras deformarse?;Plasticidad;*Elasticidad;Fragilidad;Maleabilidad
+¿Qué metal es el principal componente del acero?;*Hierro;Aluminio;Cobre;Estaño
+¿Qué material cerámico se obtiene cociendo arcilla?;Vidrio;*Cerámica (barro cocido);Hormigón;Yeso
+¿Cómo se llama la capacidad de un material para deformarse en láminas sin romperse?;Ductilidad;Tenacidad;*Maleabilidad;Dureza
+¿Qué material compuesto se forma con fibra de vidrio y resina?;Aglomerado;*Fibra de vidrio reforzada;Latón;Bronce
+¿Qué tratamiento se aplica al acero para aumentar su dureza superficial?;Laminado;*Temple;Fundido;Pulido
+¿Qué material se usa en circuitos impresos por su aislamiento eléctrico?;Aluminio;Cobre;*Baquelita (resina fenólica);Acero
+¿Cuál de estos NO es un material pétreo?;Granito;Mármol;Pizarra;*Poliuretano
+`.trim();
+
+function parseQuestions(txt){
+  const lines = txt.split('\n').map(l=>l.trim()).filter(l=>l.length>0 && !l.startsWith('#'));
+  const out = [];
+  for(const line of lines){
+    const parts = line.split(';').map(p=>p.trim());
+    if(parts.length < 5) continue;
+    const question = parts[0];
+    const options = [];
+    for(let i=1;i<parts.length;i++){
+      let opt = parts[i];
+      let correct = false;
+      if(opt.startsWith('*')){ correct = true; opt = opt.slice(1).trim(); }
+      if(opt.length) options.push({text:opt, correct});
+    }
+    if(options.length >= 2 && options.some(o=>o.correct)){
+      out.push({question, options});
+    }
+  }
+  return out;
+}
+
+let QUESTIONS = parseQuestions(DEFAULT_QUESTIONS_TXT);
+
+/* ---------- carga de fichero de texto personalizado ---------- */
+const fileInput = document.getElementById('file-input');
+const fileNameEl = document.getElementById('file-name');
+const startStatus = document.getElementById('start-status');
+fileInput.addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const parsed = parseQuestions(reader.result);
+    if(parsed.length >= 3){
+      QUESTIONS = parsed;
+      fileNameEl.textContent = `${file.name} · ${parsed.length} preguntas cargadas`;
+      startStatus.textContent = '';
+    } else {
+      startStatus.textContent = 'El fichero no tiene un formato válido (pregunta;op1;*op2;op3;op4). Se mantienen las preguntas por defecto.';
+      startStatus.classList.add('warn');
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+
+/* =========================================================
+   ESCENA THREE.JS
+========================================================= */
+const canvas = document.getElementById('app-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.enabled = true;
+renderer.shadowMap.enabled = false;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x232833);
+scene.fog = new THREE.Fog(0x232833, 8, 30);
+
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.05, 100);
+const dolly = new THREE.Group();
+dolly.add(camera);
+scene.add(dolly);
+
+/* ---------- ciclo día/noche del cielo (muy lento) ---------- */
+const SKY_CYCLE_SECONDS = 300; // 5 minutos por ciclo completo
+const SKY_LIGHT = {
+  bg: new THREE.Color(0x2b3140), hemiSky: new THREE.Color(0xcfe0f5),
+  hemiGround: new THREE.Color(0x3a4048), hemiIntensity: 1.0,
+  dirColor: new THREE.Color(0xfff2d8), dirIntensity: 0.85,
+};
+const SKY_DARK = {
+  bg: new THREE.Color(0x0a0c10), hemiSky: new THREE.Color(0x232a38),
+  hemiGround: new THREE.Color(0x0e1014), hemiIntensity: 0.28,
+  dirColor: new THREE.Color(0x7d8fb5), dirIntensity: 0.18,
+};
+let skyTime = 0;
+function updateSkyCycle(delta){
+  skyTime += delta;
+  const t = (Math.sin((skyTime/SKY_CYCLE_SECONDS)*Math.PI*2)+1)/2; // 0=noche, 1=día
+  scene.background.copy(SKY_DARK.bg).lerp(SKY_LIGHT.bg, t);
+  if(scene.fog) scene.fog.color.copy(scene.background);
+  hemiLight.color.copy(SKY_DARK.hemiSky).lerp(SKY_LIGHT.hemiSky, t);
+  hemiLight.groundColor.copy(SKY_DARK.hemiGround).lerp(SKY_LIGHT.hemiGround, t);
+  hemiLight.intensity = THREE.MathUtils.lerp(SKY_DARK.hemiIntensity, SKY_LIGHT.hemiIntensity, t);
+  dirLight.color.copy(SKY_DARK.dirColor).lerp(SKY_LIGHT.dirColor, t);
+  dirLight.intensity = THREE.MathUtils.lerp(SKY_DARK.dirIntensity, SKY_LIGHT.dirIntensity, t);
+}
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* Luces */
+const hemiLight = new THREE.HemisphereLight(0xcfe0f5, 0x3a4048, 1.0);
+scene.add(hemiLight);
+const dirLight = new THREE.DirectionalLight(0xfff2d8, 0.85);
+dirLight.position.set(3,6,2);
+scene.add(dirLight);
+
+/* =========================================================
+   TEXTURAS PROCEDURALES (sin dependencias externas)
+========================================================= */
+function makeCanvasTexture(draw, w=256, h=256){
+  const c = document.createElement('canvas'); c.width=w; c.height=h;
+  const ctx = c.getContext('2d');
+  draw(ctx,w,h);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+const wallTexture = makeCanvasTexture((ctx,w,h)=>{
+  ctx.fillStyle = '#6e7885'; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle = 'rgba(25,28,33,.3)'; ctx.lineWidth=3;
+  const rows=6, cols=4;
+  for(let r=0;r<rows;r++){
+    const y = r*(h/rows);
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
+    const offset = (r%2===0)?0:(w/cols/2);
+    for(let c2=0;c2<=cols;c2++){
+      const x = c2*(w/cols)+offset;
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y+(h/rows)); ctx.stroke();
+    }
+  }
+  ctx.fillStyle='rgba(255,140,26,.05)';
+  for(let i=0;i<40;i++){
+    ctx.fillRect(Math.random()*w, Math.random()*h, 2,2);
+  }
+}, 256,256);
+wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
+wallTexture.repeat.set(1,1);
+
+const floorTexture = makeCanvasTexture((ctx,w,h)=>{
+  ctx.fillStyle = '#333941'; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle = 'rgba(130,195,255,.3)'; ctx.lineWidth=2;
+  const step = w/8;
+  for(let i=0;i<=8;i++){
+    ctx.beginPath(); ctx.moveTo(i*step,0); ctx.lineTo(i*step,h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,i*step); ctx.lineTo(w,i*step); ctx.stroke();
+  }
+}, 256,256);
+floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+
+/* =========================================================
+   GENERACIÓN DEL LABERINTO (recursive backtracker)
+========================================================= */
+const CELL_SIZE = 4;
+const WALL_HEIGHT = 3.0;
+const MAZE_W = 7, MAZE_H = 7;   // celdas
+const GW = MAZE_W*2+1, GH = MAZE_H*2+1; // tamaño de la rejilla resultante
+
+function generateMazeCells(w,h){
+  const idx=(x,y)=>y*w+x;
+  const cells = new Array(w*h).fill(0).map(()=>({N:true,S:true,E:true,W:true,visited:false}));
+  const stack=[[0,0]];
+  cells[idx(0,0)].visited = true;
+  const opposite = {N:'S',S:'N',E:'W',W:'E'};
+  while(stack.length){
+    const [x,y] = stack[stack.length-1];
+    const options=[];
+    if(y>0 && !cells[idx(x,y-1)].visited) options.push(['N',x,y-1]);
+    if(y<h-1 && !cells[idx(x,y+1)].visited) options.push(['S',x,y+1]);
+    if(x>0 && !cells[idx(x-1,y)].visited) options.push(['W',x-1,y]);
+    if(x<w-1 && !cells[idx(x+1,y)].visited) options.push(['E',x+1,y]);
+    if(options.length===0){ stack.pop(); continue; }
+    const [dir,nx,ny] = options[Math.floor(Math.random()*options.length)];
+    cells[idx(x,y)][dir] = false;
+    cells[idx(nx,ny)][opposite[dir]] = false;
+    cells[idx(nx,ny)].visited = true;
+    stack.push([nx,ny]);
+  }
+  return cells;
+}
+
+function cellsToGrid(cells,w,h){
+  const grid = Array.from({length:GH}, ()=> new Array(GW).fill('#'));
+  const idx=(x,y)=>y*w+x;
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const c = cells[idx(x,y)];
+      const gx=2*x+1, gy=2*y+1;
+      grid[gy][gx] = '.';
+      if(!c.N) grid[gy-1][gx]='.';
+      if(!c.S) grid[gy+1][gx]='.';
+      if(!c.W) grid[gy][gx-1]='.';
+      if(!c.E) grid[gy][gx+1]='.';
+    }
+  }
+  return grid;
+}
+
+function gridToWorld(gx,gy){
+  return { x:(gx-(GW-1)/2)*CELL_SIZE, z:(gy-(GH-1)/2)*CELL_SIZE };
+}
+function worldToGridApprox(x,z){
+  return { gx: Math.round(x/CELL_SIZE + (GW-1)/2), gy: Math.round(z/CELL_SIZE + (GH-1)/2) };
+}
+
+let grid = null;
+let mazeGroup = new THREE.Group();
+scene.add(mazeGroup);
+
+function isFree(x,z,radius){
+  const {gx,gy} = worldToGridApprox(x,z);
+  for(let oy=-1;oy<=1;oy++){
+    for(let ox=-1;ox<=1;ox++){
+      const cx=gx+ox, cy=gy+oy;
+      if(cx<0||cy<0||cx>=GW||cy>=GH) continue;
+      if(grid[cy][cx] !== '#') continue;
+      const w = gridToWorld(cx,cy);
+      const half = CELL_SIZE/2;
+      const closestX = Math.max(w.x-half, Math.min(x, w.x+half));
+      const closestZ = Math.max(w.z-half, Math.min(z, w.z+half));
+      const dx=x-closestX, dz=z-closestZ;
+      if(dx*dx+dz*dz < radius*radius) return false;
+    }
+  }
+  return true;
+}
+function tryMove(pos, dx, dz, radius){
+  if(isFree(pos.x+dx, pos.z, radius)) pos.x += dx;
+  if(isFree(pos.x, pos.z+dz, radius)) pos.z += dz;
+}
+
+function buildMazeMeshes(){
+  while(mazeGroup.children.length) mazeGroup.remove(mazeGroup.children[0]);
+
+  const wallMat = new THREE.MeshStandardMaterial({ map:wallTexture, roughness:.9, metalness:.05 });
+  const wallGeo = new THREE.BoxGeometry(CELL_SIZE, WALL_HEIGHT, CELL_SIZE);
+  for(let gy=0; gy<GH; gy++){
+    for(let gx=0; gx<GW; gx++){
+      if(grid[gy][gx] === '#'){
+        const w = gridToWorld(gx,gy);
+        const mesh = new THREE.Mesh(wallGeo, wallMat);
+        mesh.position.set(w.x, WALL_HEIGHT/2, w.z);
+        mazeGroup.add(mesh);
+      }
+    }
+  }
+  const floorMat = new THREE.MeshStandardMaterial({ map:floorTexture, roughness:1 });
+  const floorSize = GW*CELL_SIZE;
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(floorSize, floorSize), floorMat);
+  floor.rotation.x = -Math.PI/2;
+  floor.position.y = 0;
+  mazeGroup.add(floor);
+
+  const ceilMat = new THREE.MeshStandardMaterial({ color:0x454b54, roughness:1 });
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(floorSize, floorSize), ceilMat);
+  ceil.rotation.x = Math.PI/2;
+  ceil.position.y = WALL_HEIGHT;
+  mazeGroup.add(ceil);
+
+  // luces ambiente puntuales tipo antorcha, repartidas
+  for(let i=0;i<12;i++){
+    const gx = 1 + Math.floor(Math.random()*(GW-2));
+    const gy = 1 + Math.floor(Math.random()*(GH-2));
+    if(grid[gy][gx] !== '.') continue;
+    const p = gridToWorld(gx,gy);
+    const pl = new THREE.PointLight(0xffc98a, 1.1, 7.5, 2);
+    pl.position.set(p.x, 1.8, p.z);
+    mazeGroup.add(pl);
+  }
+}
+
+function openCellList(){
+  const cells = [];
+  for(let x=0;x<MAZE_W;x++){
+    for(let y=0;y<MAZE_H;y++){
+      if(x===0 && y===0) continue; // reservada para el jugador
+      cells.push({gx:2*x+1, gy:2*y+1});
+    }
+  }
+  // shuffle
+  for(let i=cells.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [cells[i],cells[j]] = [cells[j],cells[i]];
+  }
+  return cells;
+}
+
+/* =========================================================
+   HUD Y MIRA (en la propia escena, visibles también en VR)
+========================================================= */
+const hudCanvas = document.createElement('canvas');
+hudCanvas.width = 512; hudCanvas.height = 128;
+const hudCtx = hudCanvas.getContext('2d');
+const hudTexture = new THREE.CanvasTexture(hudCanvas);
+function drawHUD(){
+  const ctx = hudCtx;
+  ctx.clearRect(0,0,512,128);
+  ctx.fillStyle = 'rgba(10,12,15,.55)';
+  ctx.fillRect(0,0,512,128);
+  ctx.fillStyle = '#ff8c1a';
+  ctx.font = 'bold 30px sans-serif';
+  ctx.fillText(`Puntos: ${state.score}`, 20, 44);
+  ctx.fillStyle = '#e9edf2';
+  ctx.font = '20px sans-serif';
+  ctx.fillText(`Preguntas: ${state.answers.length}/${QUESTIONS.length}`, 20, 78);
+  ctx.fillStyle = '#8b96a5';
+  ctx.font = '16px sans-serif';
+  ctx.fillText(`Momias: +${state.mummyKills}  Golpes: -${state.mummyHits}`, 20, 104);
+  hudTexture.needsUpdate = true;
+}
+const hudMat = new THREE.MeshBasicMaterial({ map:hudTexture, transparent:true, depthTest:false });
+const hudPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.125), hudMat);
+hudPlane.position.set(0,-0.32,-0.5);
+hudPlane.renderOrder = 999;
+camera.add(hudPlane);
+
+const crossMat = new THREE.MeshBasicMaterial({ color:0xffffff, depthTest:false, transparent:true, opacity:.85 });
+const crossGroup = new THREE.Group();
+const bar1 = new THREE.Mesh(new THREE.PlaneGeometry(0.012,0.0018), crossMat);
+const bar2 = new THREE.Mesh(new THREE.PlaneGeometry(0.0018,0.012), crossMat);
+crossGroup.add(bar1, bar2);
+crossGroup.position.set(0,0,-0.5);
+crossGroup.renderOrder = 999;
+camera.add(crossGroup);
+
+/* ---------- minimapa (esquina superior izquierda) ---------- */
+const minimapCanvas = document.createElement('canvas');
+minimapCanvas.width = 260; minimapCanvas.height = 260;
+const minimapCtx = minimapCanvas.getContext('2d');
+const minimapTexture = new THREE.CanvasTexture(minimapCanvas);
+const minimapMat = new THREE.MeshBasicMaterial({ map:minimapTexture, transparent:true, depthTest:false });
+const minimapPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.17,0.17), minimapMat);
+minimapPlane.position.set(-0.2, 0.12, -0.5);
+minimapPlane.renderOrder = 999;
+camera.add(minimapPlane);
+
+const visitedCells = new Set();
+function markVisited(gx,gy,radius=1){
+  for(let oy=-radius; oy<=radius; oy++){
+    for(let ox=-radius; ox<=radius; ox++){
+      const cx=gx+ox, cy=gy+oy;
+      if(cx>=0 && cy>=0 && cx<GW && cy<GH) visitedCells.add(cy*GW+cx);
+    }
+  }
+}
+
+function drawMinimap(playerPos, playerAngle){
+  if(!grid) return;
+  const ctx = minimapCtx;
+  const size = minimapCanvas.width;
+  const cell = size/GW;
+  ctx.clearRect(0,0,size,size);
+  ctx.fillStyle = 'rgba(15,18,22,.7)';
+  ctx.fillRect(0,0,size,size);
+
+  for(let gy=0; gy<GH; gy++){
+    for(let gx=0; gx<GW; gx++){
+      if(!visitedCells.has(gy*GW+gx)) continue;
+      const isWall = grid[gy][gx] === '#';
+      ctx.fillStyle = isWall ? '#5b6472' : '#dbe2ea';
+      ctx.fillRect(gx*cell, gy*cell, Math.ceil(cell), Math.ceil(cell));
+    }
+  }
+
+  npcs.forEach(npc=>{
+    const g = worldToGridApprox(npc.pos.x, npc.pos.z);
+    if(!visitedCells.has(g.gy*GW+g.gx)) return;
+    ctx.beginPath();
+    ctx.arc(g.gx*cell+cell/2, g.gy*cell+cell/2, cell*0.42, 0, Math.PI*2);
+    ctx.fillStyle = npc.answered ? '#33c17a' : '#3fa7ff';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth=1; ctx.stroke();
+  });
+
+  const pg = worldToGridApprox(playerPos.x, playerPos.z);
+  const px = pg.gx*cell+cell/2, py = pg.gy*cell+cell/2;
+  ctx.save();
+  ctx.translate(px,py);
+  ctx.rotate(playerAngle);
+  ctx.beginPath();
+  ctx.moveTo(0,-cell*0.7);
+  ctx.lineTo(cell*0.45, cell*0.55);
+  ctx.lineTo(-cell*0.45, cell*0.55);
+  ctx.closePath();
+  ctx.fillStyle = '#ff8c1a';
+  ctx.fill();
+  ctx.restore();
+
+  ctx.strokeStyle = '#ff8c1a';
+  ctx.lineWidth = 5;
+  ctx.strokeRect(2,2,size-4,size-4);
+  minimapTexture.needsUpdate = true;
+}
+
+/* =========================================================
+   ESTADO DEL JUEGO
+========================================================= */
+const state = {
+  score: 0,
+  correct: 0,
+  wrong: 0,
+  mummyKills: 0,
+  mummyHits: 0,
+  answers: [],
+  running: false,
+};
+
+const PLAYER_RADIUS = 0.45;
+const NPC_TRIGGER_RADIUS = 2.6;
+
+let npcs = [];        // {mesh, cellPos, question, answered, group}
+let mummies = [];     // {mesh, pos:Vector3, alive, respawnAt}
+let mummySpawnPoints = [];
+let activePanel = null;
+let panelAnswering = false;
+let playerInvuln = 0;
+
+/* ---------- personaje "guardián" (NPC) ---------- */
+function makeGuardianMesh(){
+  const g = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color:0x3fa7ff, emissive:0x0a2233, roughness:.4, metalness:.3 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.34,1.15,10), bodyMat);
+  body.position.y = 0.75;
+  const headMat = new THREE.MeshStandardMaterial({ color:0xffe08a, emissive:0x332600, roughness:.5 });
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.26,14,14), headMat);
+  head.position.y = 1.55;
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.32,0.08,0.06), new THREE.MeshBasicMaterial({color:0xff8c1a}));
+  visor.position.set(0,1.55,0.24);
+  g.add(body, head, visor);
+  const light = new THREE.PointLight(0x3fa7ff, 0.8, 3.5, 2);
+  light.position.y = 1.4;
+  g.add(light);
+  return g;
+}
+
+/* ---------- momia ---------- */
+function makeMummyMesh(){
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color:0xd8cfae, roughness:1 });
+  const bandageMat = new THREE.MeshStandardMaterial({ color:0xbfb491, roughness:1 });
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3,0.75,4,8), mat);
+  body.position.y = 0.85;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24,10,10), bandageMat);
+  head.position.y = 1.5;
+  const eyeMat = new THREE.MeshBasicMaterial({ color:0xff2222 });
+  const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.035,6,6), eyeMat);
+  eyeL.position.set(-0.08,1.52,0.2);
+  const eyeR = eyeL.clone(); eyeR.position.x = 0.08;
+  g.add(body, head, eyeL, eyeR);
+  for(let i=0;i<3;i++){
+    const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.31,0.03,6,12), bandageMat);
+    wrap.rotation.x = Math.PI/2;
+    wrap.position.y = 0.5 + i*0.35;
+    g.add(wrap);
+  }
+  return g;
+}
+
+function spawnNpcs(){
+  npcs.forEach(n=>mazeGroup.remove(n.group));
+  npcs = [];
+  const cells = openCellList();
+  const nQuestions = Math.min(QUESTIONS.length, cells.length - 8);
+  for(let i=0;i<nQuestions;i++){
+    const cell = cells[i];
+    const w = gridToWorld(cell.gx, cell.gy);
+    const group = makeGuardianMesh();
+    group.position.set(w.x, 0, w.z);
+    mazeGroup.add(group);
+    npcs.push({ group, question: QUESTIONS[i], answered:false, pos:new THREE.Vector3(w.x,0,w.z) });
+  }
+  // puntos de aparición de momias: celdas abiertas restantes
+  mummySpawnPoints = cells.slice(nQuestions, nQuestions+10).map(c=>gridToWorld(c.gx,c.gy));
+  if(mummySpawnPoints.length===0) mummySpawnPoints=[gridToWorld(GW-2,GH-2)];
+}
+
+function spawnMummy(){
+  const sp = mummySpawnPoints[Math.floor(Math.random()*mummySpawnPoints.length)];
+  const mesh = makeMummyMesh();
+  mesh.position.set(sp.x, 0, sp.z);
+  mazeGroup.add(mesh);
+  mummies.push({ mesh, pos:new THREE.Vector3(sp.x,0,sp.z), alive:true });
+}
+
+let mummySpawnTimer = 0;
+const MAX_MUMMIES = 4;
+const MUMMY_RADIUS = 0.38;
+const MUMMY_SPEED = 1.35;
+
+function updateMummies(delta, playerPos){
+  mummySpawnTimer -= delta;
+  if(state.running && mummies.filter(m=>m.alive).length < MAX_MUMMIES && mummySpawnTimer<=0){
+    spawnMummy();
+    mummySpawnTimer = 3.5 + Math.random()*3;
+  }
+  for(const m of mummies){
+    if(!m.alive) continue;
+    const dx = playerPos.x - m.pos.x, dz = playerPos.z - m.pos.z;
+    const dist = Math.hypot(dx,dz);
+    if(dist > 0.001){
+      const nx = dx/dist, nz = dz/dist;
+      tryMove(m.pos, nx*MUMMY_SPEED*delta, nz*MUMMY_SPEED*delta, MUMMY_RADIUS);
+    }
+    m.mesh.position.set(m.pos.x, 0, m.pos.z);
+    m.mesh.lookAt(playerPos.x, 0, playerPos.z);
+
+    if(dist < (MUMMY_RADIUS+PLAYER_RADIUS) && playerInvuln<=0){
+      state.mummyHits++;
+      state.score -= 1;
+      playerInvuln = 1.4;
+      drawHUD();
+      respawnMummy(m);
+    }
+  }
+  if(playerInvuln>0) playerInvuln -= delta;
+}
+
+function respawnMummy(m){
+  const sp = mummySpawnPoints[Math.floor(Math.random()*mummySpawnPoints.length)];
+  m.pos.set(sp.x,0,sp.z);
+  m.mesh.position.copy(m.pos);
+}
+
+/* ---------- monedas (recompensa al abatir una momia) ---------- */
+let coins = [];
+const COIN_PICKUP_RADIUS = 0.55;
+
+function makeCoinMesh(){
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color:0xffd24a, emissive:0x5a3d00, metalness:.6, roughness:.3 });
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,0.045,20), mat);
+  disc.rotation.x = Math.PI/2;
+  g.add(disc);
+  const light = new THREE.PointLight(0xffd24a, 0.8, 2.2, 2);
+  light.position.y = 0.1;
+  g.add(light);
+  return g;
+}
+
+function spawnCoin(pos){
+  const mesh = makeCoinMesh();
+  mesh.position.set(pos.x, 0.55, pos.z);
+  mazeGroup.add(mesh);
+  coins.push({ mesh, pos: new THREE.Vector3(pos.x, 0.55, pos.z) });
+}
+
+function updateCoins(delta, playerPos){
+  for(let i=coins.length-1; i>=0; i--){
+    const c = coins[i];
+    c.mesh.rotation.y += delta*2.4;
+    c.mesh.position.y = c.pos.y + Math.sin(performance.now()/450 + i)*0.05;
+    const d = Math.hypot(playerPos.x-c.pos.x, playerPos.z-c.pos.z);
+    if(d < COIN_PICKUP_RADIUS){
+      mazeGroup.remove(c.mesh);
+      coins.splice(i,1);
+    }
+  }
+}
+
+function clearCoins(){
+  coins.forEach(c=> mazeGroup.remove(c.mesh));
+  coins = [];
+}
+
+function killMummy(mesh){
+  const m = mummies.find(mm=>mm.mesh===mesh || mm.mesh===mesh.parent);
+  if(!m || !m.alive) return;
+  state.mummyKills++;
+  state.score += 1;
+  drawHUD();
+  const deathPos = m.pos.clone();
+  respawnMummy(m);
+  spawnCoin(deathPos);
+  // pequeño efecto: desaparece un instante
+  m.mesh.visible = false;
+  setTimeout(()=>{ if(m.alive) m.mesh.visible = true; }, 600);
+}
+
+/* =========================================================
+   PANEL DE PREGUNTA (holograma en el mundo 3D)
+========================================================= */
+function wrapText(ctx, text, maxWidth){
+  const words = text.split(' ');
+  const lines = [];
+  let cur = '';
+  for(const w of words){
+    const test = cur ? cur+' '+w : w;
+    if(ctx.measureText(test).width > maxWidth && cur){ lines.push(cur); cur=w; }
+    else cur = test;
+  }
+  if(cur) lines.push(cur);
+  return lines;
+}
+
+function makeLabelTexture(text, opts={}){
+  const w = opts.w||512, h = opts.h||160;
+  return makeCanvasTexture((ctx)=>{
+    ctx.fillStyle = opts.bg||'rgba(15,18,22,.92)';
+    ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle = opts.border||'#ff8c1a';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(3,3,w-6,h-6);
+    ctx.fillStyle = opts.color||'#e9edf2';
+    ctx.font = opts.font||'bold 30px sans-serif';
+    ctx.textBaseline = 'middle';
+    const lines = wrapText(ctx, text, w-40);
+    const lh = opts.lineHeight||36;
+    const startY = h/2 - (lines.length-1)*lh/2;
+    lines.forEach((l,i)=> ctx.fillText(l, 20, startY + i*lh));
+  }, w,h);
+}
+
+function openQuestionPanel(npc){
+  closeQuestionPanel();
+  const group = new THREE.Group();
+
+  const qTex = makeLabelTexture(npc.question.question, { w:640,h:200, font:'bold 30px sans-serif', border:'#3fa7ff', lineHeight:38 });
+  const qPlane = new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.5), new THREE.MeshBasicMaterial({map:qTex, transparent:true, side:THREE.DoubleSide}));
+  qPlane.position.set(0,0.55,0);
+  group.add(qPlane);
+
+  const buttonMeshes = [];
+  const opts = npc.question.options;
+  const totalH = opts.length*0.34;
+  opts.forEach((opt,i)=>{
+    const tex = makeLabelTexture(opt.text, { w:560,h:120, font:'26px sans-serif', border:'#555f6b', lineHeight:30 });
+    const mat = new THREE.MeshBasicMaterial({ map:tex, transparent:true, side:THREE.DoubleSide });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.4,0.3), mat);
+    mesh.position.set(0, 0.15 - i*0.34, 0);
+    mesh.userData = { npc, option:opt, isAnswerButton:true };
+    group.add(mesh);
+    buttonMeshes.push(mesh);
+  });
+
+  const npcPos = npc.pos;
+  const dirToPlayer = new THREE.Vector3().subVectors(dollyWorldPos(), npcPos).setY(0).normalize();
+  const panelPos = new THREE.Vector3(npcPos.x,1.55,npcPos.z).addScaledVector(dirToPlayer, 0.9);
+  group.position.copy(panelPos);
+  group.lookAt(dollyWorldPos().x, 1.55, dollyWorldPos().z);
+
+  mazeGroup.add(group);
+  activePanel = { group, buttonMeshes, npc };
+  document.getElementById('hint').classList.add('hidden');
+}
+
+function closeQuestionPanel(){
+  if(activePanel){
+    mazeGroup.remove(activePanel.group);
+    activePanel = null;
+  }
+}
+
+function dollyWorldPos(){
+  const p = new THREE.Vector3();
+  dolly.getWorldPosition(p);
+  return p;
+}
+
+function answerQuestion(npc, option){
+  if(!activePanel || panelAnswering) return;
+  panelAnswering = true;
+  const panel = activePanel;
+
+  npc.answered = true;
+  npc.group.traverse(o=>{
+    if(o.material && o.material.emissive){
+      o.material.color.set(0x33c17a);
+      o.material.emissive.set(0x0e3a24);
+    }
+    if(o.isPointLight) o.color.set(0x33c17a);
+  });
+  const correct = !!option.correct;
+  if(correct){ state.correct++; state.score += 1; }
+  else { state.wrong++; }
+  state.answers.push({ question: npc.question.question, chosen: option.text, correct });
+  drawHUD();
+
+  // feedback visual: verde para la opción correcta, rojo para las incorrectas
+  panel.buttonMeshes.forEach(mesh=>{
+    const isCorrectOpt = !!mesh.userData.option.correct;
+    const tex = makeLabelTexture(mesh.userData.option.text, {
+      w:560, h:120, font:'bold 26px sans-serif', lineHeight:30,
+      border: isCorrectOpt ? '#33c17a' : '#e5484d',
+      bg: isCorrectOpt ? 'rgba(18,58,38,.95)' : 'rgba(58,20,22,.95)',
+      color: '#ffffff',
+    });
+    mesh.material.map.dispose();
+    mesh.material.map = tex;
+    mesh.material.needsUpdate = true;
+  });
+
+  setTimeout(()=>{
+    closeQuestionPanel();
+    panelAnswering = false;
+    document.getElementById('hint').classList.remove('hidden');
+    if(state.answers.length >= npcs.length){
+      endGame();
+    }
+  }, 1300);
+}
+
+/* =========================================================
+   CONTROLADORES XR (movimiento por joystick + disparo)
+========================================================= */
+const controllerModelFactory = new XRControllerModelFactory();
+const raycaster = new THREE.Raycaster();
+const tmpMatrix = new THREE.Matrix4();
+
+function makeRayLine(){
+  const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-5)]);
+  const mat = new THREE.LineBasicMaterial({ color:0xff8c1a, transparent:true, opacity:.6 });
+  const line = new THREE.Line(geo, mat);
+  line.scale.z = 1;
+  return line;
+}
+
+const controllers = [0,1].map(i=>{
+  const controller = renderer.xr.getController(i);
+  controller.userData.inputSource = null;
+  controller.addEventListener('connected', function(evt){ this.userData.inputSource = evt.data; });
+  controller.addEventListener('disconnected', function(){ this.userData.inputSource = null; });
+  controller.addEventListener('selectstart', onControllerSelect);
+  controller.add(makeRayLine());
+  dolly.add(controller);
+
+  const grip = renderer.xr.getControllerGrip(i);
+  grip.add(controllerModelFactory.createControllerModel(grip));
+  dolly.add(grip);
+
+  return controller;
+});
+
+function raycastFrom(object, targets){
+  tmpMatrix.identity().extractRotation(object.matrixWorld);
+  raycaster.ray.origin.setFromMatrixPosition(object.matrixWorld);
+  raycaster.ray.direction.set(0,0,-1).applyMatrix4(tmpMatrix);
+  return raycaster.intersectObjects(targets, true);
+}
+
+function onControllerSelect(event){
+  const controller = event.target;
+  if(activePanel){
+    if(!panelAnswering){
+      const hits = raycastFrom(controller, activePanel.buttonMeshes);
+      if(hits.length){
+        const ud = hits[0].object.userData;
+        answerQuestion(ud.npc, ud.option);
+      }
+    }
+    return;
+  }
+  const npcTargets = npcs.filter(n=>!n.answered).map(n=>n.group);
+  const npcHits = raycastFrom(controller, npcTargets);
+  if(npcHits.length){
+    let obj = npcHits[0].object;
+    while(obj.parent && !npcs.some(n=>n.group===obj)) obj = obj.parent;
+    const npc = npcs.find(n=>n.group===obj);
+    if(npc) openQuestionPanel(npc);
+    return;
+  }
+  const mummyMeshes = mummies.filter(m=>m.alive).map(m=>m.mesh);
+  const hits = raycastFrom(controller, mummyMeshes);
+  if(hits.length){
+    let obj = hits[0].object;
+    while(obj.parent && !mummies.some(m=>m.mesh===obj)) obj = obj.parent;
+    killMummy(obj);
+  }
+}
+
+/* ---------- modo escritorio (previsualización sin gafas) ---------- */
+let desktopMode = false;
+const keys = {};
+let yaw = 0, pitch = 0;
+let pointerLocked = false;
+window.addEventListener('keydown', e=> keys[e.code]=true);
+window.addEventListener('keyup', e=> keys[e.code]=false);
+canvas.addEventListener('click', ()=>{
+  if(desktopMode && !renderer.xr.isPresenting){
+    canvas.requestPointerLock();
+    // disparo/selección con click también
+    doDesktopAction();
+  }
+});
+document.addEventListener('pointerlockchange', ()=>{
+  pointerLocked = document.pointerLockElement === canvas;
+});
+window.addEventListener('mousemove', (e)=>{
+  if(!pointerLocked) return;
+  yaw -= e.movementX*0.0022;
+  pitch -= e.movementY*0.0022;
+  pitch = Math.max(-1.2, Math.min(1.2, pitch));
+});
+
+function doDesktopAction(){
+  if(activePanel){
+    raycaster.setFromCamera({x:0,y:0}, camera);
+    const hits = raycaster.intersectObjects(activePanel.buttonMeshes, true);
+    if(hits.length && !panelAnswering){ const ud=hits[0].object.userData; answerQuestion(ud.npc, ud.option); }
+    return;
+  }
+  raycaster.setFromCamera({x:0,y:0}, camera);
+  const npcTargets = npcs.filter(n=>!n.answered).map(n=>n.group);
+  const npcHits = raycaster.intersectObjects(npcTargets, true);
+  if(npcHits.length){
+    let obj = npcHits[0].object;
+    while(obj.parent && !npcs.some(n=>n.group===obj)) obj = obj.parent;
+    const npc = npcs.find(n=>n.group===obj);
+    if(npc) openQuestionPanel(npc);
+    return;
+  }
+  const mummyMeshes = mummies.filter(m=>m.alive).map(m=>m.mesh);
+  const hits = raycaster.intersectObjects(mummyMeshes, true);
+  if(hits.length){
+    let obj = hits[0].object;
+    while(obj.parent && !mummies.some(m=>m.mesh===obj)) obj = obj.parent;
+    killMummy(obj);
+  }
+}
+
+/* =========================================================
+   BUCLE PRINCIPAL
+========================================================= */
+const clock = new THREE.Clock();
+const UP = new THREE.Vector3(0,1,0);
+let minimapTimer = 0;
+
+function updateMovementXR(delta){
+  for(const controller of controllers){
+    const src = controller.userData.inputSource;
+    if(!src || !src.gamepad) continue;
+    const axes = src.gamepad.axes;
+    const ax = axes.length>=4 ? axes[2] : axes[0];
+    const ay = axes.length>=4 ? axes[3] : axes[1];
+    if(Math.abs(ax)<0.12 && Math.abs(ay)<0.12) continue;
+
+    if(src.handedness === 'left'){
+      const dir = new THREE.Vector3();
+      camera.getWorldDirection(dir); dir.y=0; dir.normalize();
+      const right = dir.clone().applyAxisAngle(UP, -Math.PI/2);
+      const speed = 2.6*delta;
+      const dx = (right.x*ax + dir.x*(-ay))*speed;
+      const dz = (right.z*ax + dir.z*(-ay))*speed;
+      const p = { x:dolly.position.x, z:dolly.position.z };
+      tryMove(p, dx, dz, PLAYER_RADIUS);
+      dolly.position.x = p.x; dolly.position.z = p.z;
+    } else if(src.handedness === 'right'){
+      dolly.rotation.y -= ax * 1.6 * delta;
+    }
+  }
+}
+
+function updateMovementDesktop(delta){
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir); dir.y=0; dir.normalize();
+  const right = dir.clone().applyAxisAngle(UP, -Math.PI/2);
+  let mx=0, mz=0;
+  const speed = 3.2*delta;
+  if(keys['KeyW']||keys['ArrowUp']){ mx+=dir.x*speed; mz+=dir.z*speed; }
+  if(keys['KeyS']||keys['ArrowDown']){ mx-=dir.x*speed; mz-=dir.z*speed; }
+  if(keys['KeyA']||keys['ArrowLeft']){ mx-=right.x*speed; mz-=right.z*speed; }
+  if(keys['KeyD']||keys['ArrowRight']){ mx+=right.x*speed; mz+=right.z*speed; }
+  const p = { x:dolly.position.x, z:dolly.position.z };
+  tryMove(p, mx, mz, PLAYER_RADIUS);
+  dolly.position.x = p.x; dolly.position.z = p.z;
+}
+
+function checkNpcTriggers(){
+  if(activePanel) return;
+  const playerPos = dollyWorldPos();
+  for(const npc of npcs){
+    if(npc.answered) continue;
+    const d = Math.hypot(playerPos.x-npc.pos.x, playerPos.z-npc.pos.z);
+    if(d < NPC_TRIGGER_RADIUS){
+      openQuestionPanel(npc);
+      break;
+    }
+  }
+}
+
+function render(){
+  const delta = Math.min(clock.getDelta(), 0.1);
+  updateSkyCycle(delta);
+  if(state.running){
+    if(renderer.xr.isPresenting) updateMovementXR(delta);
+    else if(desktopMode) updateMovementDesktop(delta);
+    const playerPos = dollyWorldPos();
+    updateMummies(delta, playerPos);
+    updateCoins(delta, playerPos);
+    checkNpcTriggers();
+
+    const pg = worldToGridApprox(playerPos.x, playerPos.z);
+    markVisited(pg.gx, pg.gy, 1);
+    minimapTimer -= delta;
+    if(minimapTimer <= 0){
+      const dir = new THREE.Vector3();
+      camera.getWorldDirection(dir);
+      drawMinimap(playerPos, Math.atan2(dir.x, -dir.z));
+      minimapTimer = 0.15;
+    }
+  }
+  renderer.render(scene, camera);
+}
+renderer.setAnimationLoop(render);
+
+/* =========================================================
+   MÚSICA DE FONDO (melodía ambiental generada + carga opcional)
+========================================================= */
+let audioCtx = null;
+let musicGainNode = null;
+let customAudioBuffer = null;
+let usingCustomMusic = false;
+let customSourceNode = null;
+let ambientStopFn = null;
+
+const musicInput = document.getElementById('music-input');
+const musicNameEl = document.getElementById('music-name');
+musicInput.addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  ensureAudioCtx();
+  file.arrayBuffer().then(buf=>{
+    audioCtx.decodeAudioData(buf, (decoded)=>{
+      customAudioBuffer = decoded;
+      usingCustomMusic = true;
+      musicNameEl.textContent = `${file.name} · pista cargada`;
+      if(state.running) startMusic();
+    }, ()=>{
+      musicNameEl.textContent = 'No se pudo leer ese archivo de audio.';
+    });
+  });
+});
+
+function ensureAudioCtx(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    musicGainNode = audioCtx.createGain();
+    musicGainNode.gain.value = 0.35;
+    musicGainNode.connect(audioCtx.destination);
+  }
+}
+
+function playGeneratedAmbient(ctx, out){
+  const chords = [
+    [220.00,261.63,329.63,392.00],
+    [174.61,220.00,261.63,349.23],
+    [130.81,164.81,196.00,261.63],
+    [196.00,246.94,293.66,392.00],
+  ];
+  let stopped = false;
+  let chordIndex = 0;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 1500;
+  filter.connect(out);
+  const activeGains = [];
+
+  function playChord(freqs, duration){
+    const chordGain = ctx.createGain();
+    chordGain.gain.value = 0;
+    chordGain.connect(filter);
+    const now = ctx.currentTime;
+    chordGain.gain.linearRampToValueAtTime(0.22, now+2.2);
+    chordGain.gain.linearRampToValueAtTime(0, now+duration-1.2);
+    freqs.forEach((f,i)=>{
+      const osc = ctx.createOscillator();
+      osc.type = i%2===0 ? 'sine' : 'triangle';
+      osc.frequency.value = f;
+      osc.detune.value = (Math.random()-0.5)*6;
+      osc.connect(chordGain);
+      osc.start(now);
+      osc.stop(now+duration+0.1);
+    });
+    activeGains.push(chordGain);
+  }
+  function scheduleNext(){
+    if(stopped) return;
+    const duration = 9;
+    playChord(chords[chordIndex % chords.length], duration);
+    chordIndex++;
+    setTimeout(scheduleNext, (duration-1.2)*1000);
+  }
+  scheduleNext();
+  return function stop(){
+    stopped = true;
+    activeGains.forEach(g=>{ try{ g.disconnect(); }catch(e){} });
+    try{ filter.disconnect(); }catch(e){}
+  };
+}
+
+function startMusic(){
+  ensureAudioCtx();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  stopMusic();
+  if(usingCustomMusic && customAudioBuffer){
+    customSourceNode = audioCtx.createBufferSource();
+    customSourceNode.buffer = customAudioBuffer;
+    customSourceNode.loop = true;
+    customSourceNode.connect(musicGainNode);
+    customSourceNode.start();
+  } else {
+    ambientStopFn = playGeneratedAmbient(audioCtx, musicGainNode);
+  }
+}
+function stopMusic(){
+  if(customSourceNode){ try{ customSourceNode.stop(); }catch(e){} customSourceNode = null; }
+  if(ambientStopFn){ ambientStopFn(); ambientStopFn = null; }
+}
+
+/* =========================================================
+   FLUJO DE PARTIDA / PANTALLAS
+========================================================= */
+const overlayStart = document.getElementById('overlay-start');
+const overlayEnd = document.getElementById('overlay-end');
+const hintEl = document.getElementById('hint');
+
+function resetState(){
+  state.score=0; state.correct=0; state.wrong=0;
+  state.mummyKills=0; state.mummyHits=0; state.answers=[];
+  mummies.forEach(m=> mazeGroup.remove(m.mesh));
+  mummies = [];
+  mummySpawnTimer = 1;
+  playerInvuln = 0;
+  visitedCells.clear();
+  minimapTimer = 0;
+  clearCoins();
+  panelAnswering = false;
+  closeQuestionPanel();
+}
+
+function startGame(){
+  resetState();
+  grid = cellsToGrid(generateMazeCells(MAZE_W, MAZE_H), MAZE_W, MAZE_H);
+  buildMazeMeshes();
+  spawnNpcs();
+  const start = gridToWorld(1,1);
+  dolly.position.set(start.x, 0, start.z);
+  dolly.rotation.y = 0;
+  yaw = 0; pitch = 0;
+  drawHUD();
+  state.running = true;
+  overlayStart.classList.add('hidden');
+  overlayEnd.classList.add('hidden');
+  hintEl.classList.remove('hidden');
+  startMusic();
+}
+
+function endGame(){
+  state.running = false;
+  hintEl.classList.add('hidden');
+  closeQuestionPanel();
+  if(renderer.xr.isPresenting){
+    const session = renderer.xr.getSession();
+    if(session) session.end();
+  }
+  document.getElementById('stat-correct').textContent = state.correct;
+  document.getElementById('stat-wrong').textContent = state.wrong;
+  document.getElementById('stat-kills').textContent = state.mummyKills;
+  document.getElementById('stat-hits').textContent = state.mummyHits;
+  document.getElementById('stat-total').textContent = state.score;
+
+  const tbody = document.querySelector('#results-table tbody');
+  tbody.innerHTML = '';
+  state.answers.forEach((a,i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td>${a.question}</td>
+      <td>${a.chosen}</td>
+      <td>${a.correct ? '<span class="tag ok">Acierto</span>' : '<span class="tag bad">Fallo</span>'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  overlayEnd.classList.remove('hidden');
+}
+
+document.getElementById('btn-desktop').addEventListener('click', ()=>{
+  desktopMode = true;
+  startGame();
+});
+
+document.getElementById('btn-restart').addEventListener('click', ()=>{
+  overlayEnd.classList.add('hidden');
+  overlayStart.classList.remove('hidden');
+});
+
+document.getElementById('btn-share').addEventListener('click', async ()=>{
+  const text = `Laberinto VR de Preguntas :-) — IES Santa Engracia · STEAM 4.0 - SCS\nPuntuación: ${state.score}\nAciertos: ${state.correct}/${state.answers.length}\nMomias abatidas: ${state.mummyKills}\nGolpes recibidos: ${state.mummyHits}`;
+  const statusEl = document.getElementById('share-status');
+  try{
+    if(navigator.share){
+      await navigator.share({ title:'Resultados — Laberinto VR de Materiales', text });
+      statusEl.textContent = '';
+    } else {
+      await navigator.clipboard.writeText(text);
+      statusEl.textContent = 'Resultados copiados al portapapeles ✅';
+    }
+  }catch(err){
+    try{
+      await navigator.clipboard.writeText(text);
+      statusEl.textContent = 'Resultados copiados al portapapeles ✅';
+    }catch(e2){
+      statusEl.textContent = 'No se pudieron compartir los resultados.';
+    }
+  }
+});
+
+/* ---------- botón VR ---------- */
+if('xr' in navigator){
+  navigator.xr.isSessionSupported('immersive-vr').then(supported=>{
+    if(supported){
+      const btn = VRButton.createButton(renderer);
+      document.getElementById('vr-btn-slot').appendChild(btn);
+      renderer.xr.addEventListener('sessionstart', ()=>{
+        desktopMode = false;
+        startGame();
+      });
+      renderer.xr.addEventListener('sessionend', ()=>{
+        if(state.running) endGame();
+      });
+    } else {
+      startStatus.textContent = 'Este navegador no soporta WebXR inmersivo. Puedes probar en modo escritorio o abrir esta página desde el navegador de tus gafas Meta Quest 3.';
+    }
+  });
+} else {
+  startStatus.textContent = 'WebXR no está disponible en este navegador. Ábrelo desde el navegador de tus gafas Meta Quest 3, o prueba el modo escritorio.';
+}
+</script>
+</body>
+</html>
