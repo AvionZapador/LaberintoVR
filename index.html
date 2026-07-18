@@ -116,7 +116,7 @@
     pointer-events:none;
   }
   #shoot-btn{
-    position:fixed; right:16px; bottom:69px;
+    position:fixed; right:19vw; bottom:69px;
     width:64px; height:64px; z-index:17;
     background:rgba(229,72,77,.28); border:2px solid #e5484d;
     color:#ffb3b5; font-size:26px; border-radius:12px;
@@ -1518,9 +1518,17 @@ function startGame(){
   if(mobileMode){
     minimapPlane.visible = false;
     minimapMobileWrap.classList.remove('hidden');
+    hudPlane.position.set(0, -0.24, -0.5);
   } else {
     minimapPlane.visible = true;
     minimapMobileWrap.classList.add('hidden');
+    if(renderer.xr.isPresenting){
+      minimapPlane.position.set(-0.2, 0.07, -0.5);
+      hudPlane.position.set(0, -0.32, -0.5);
+    } else {
+      minimapPlane.position.set(-0.32, 0.2, -0.5);
+      hudPlane.position.set(0, -0.22, -0.5);
+    }
   }
   drawHUD();
   state.running = true;
