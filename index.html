@@ -79,6 +79,15 @@
   /* controles táctiles (modo móvil) */
   #mobile-controls{ position:fixed; inset:0; z-index:15; pointer-events:none; }
   #mobile-controls.hidden{ display:none; }
+  #minimap-mobile{
+    position:fixed; left:16px; bottom:206px;
+    width:150px; height:150px; z-index:16;
+    border:2px solid var(--accent); border-radius:8px;
+    overflow:hidden; pointer-events:none;
+    box-shadow:0 6px 18px rgba(0,0,0,.4);
+  }
+  #minimap-mobile.hidden{ display:none; }
+
   #dpad{
     position:absolute; left:16px; bottom:16px;
     width:174px; height:174px;
@@ -150,6 +159,7 @@
 <canvas id="app-canvas"></canvas>
 
 <div id="mobile-controls" class="hidden">
+  <div id="minimap-mobile" class="hidden"></div>
   <div id="dpad">
     <div class="dpad-btn dpad-up" data-dir="up">▲</div>
     <div class="dpad-btn dpad-left" data-dir="left">◀</div>
@@ -617,6 +627,13 @@ minimapPlane.position.set(-0.2, 0.12, -0.5);
 minimapPlane.renderOrder = 999;
 camera.add(minimapPlane);
 
+// en modo móvil el minimapa se muestra como overlay 2D encima de la cruz de movimiento
+const minimapMobileWrap = document.getElementById('minimap-mobile');
+minimapCanvas.style.width = '100%';
+minimapCanvas.style.height = '100%';
+minimapCanvas.style.display = 'block';
+minimapMobileWrap.appendChild(minimapCanvas);
+
 const visitedCells = new Set();
 function markVisited(gx,gy,radius=1){
   for(let oy=-radius; oy<=radius; oy++){
@@ -898,19 +915,19 @@ function openQuestionPanel(npc){
   closeQuestionPanel();
   const group = new THREE.Group();
 
-  const qTex = makeLabelTexture(npc.question.question, { w:640,h:200, font:'bold 30px sans-serif', border:'#3fa7ff', lineHeight:38 });
-  const qPlane = new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.5), new THREE.MeshBasicMaterial({map:qTex, transparent:true, side:THREE.DoubleSide}));
-  qPlane.position.set(0,0.55,0);
+  const qTex = makeLabelTexture(npc.question.question, { w:820,h:260, font:'bold 38px sans-serif', border:'#3fa7ff', lineHeight:46 });
+  const qPlane = new THREE.Mesh(new THREE.PlaneGeometry(2.15,0.68), new THREE.MeshBasicMaterial({map:qTex, transparent:true, side:THREE.DoubleSide}));
+  qPlane.position.set(0,0.68,0);
   group.add(qPlane);
 
   const buttonMeshes = [];
   const opts = npc.question.options;
-  const totalH = opts.length*0.34;
+  const totalH = opts.length*0.46;
   opts.forEach((opt,i)=>{
-    const tex = makeLabelTexture(opt.text, { w:560,h:120, font:'26px sans-serif', border:'#555f6b', lineHeight:30 });
+    const tex = makeLabelTexture(opt.text, { w:740,h:150, font:'bold 34px sans-serif', border:'#555f6b', lineHeight:38 });
     const mat = new THREE.MeshBasicMaterial({ map:tex, transparent:true, side:THREE.DoubleSide });
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.4,0.3), mat);
-    mesh.position.set(0, 0.15 - i*0.34, 0);
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.9,0.38), mat);
+    mesh.position.set(0, 0.2 - i*0.46, 0);
     mesh.userData = { npc, option:opt, isAnswerButton:true };
     group.add(mesh);
     buttonMeshes.push(mesh);
@@ -918,7 +935,7 @@ function openQuestionPanel(npc){
 
   const npcPos = npc.pos;
   const dirToPlayer = new THREE.Vector3().subVectors(dollyWorldPos(), npcPos).setY(0).normalize();
-  const panelPos = new THREE.Vector3(npcPos.x,1.55,npcPos.z).addScaledVector(dirToPlayer, 0.9);
+  const panelPos = new THREE.Vector3(npcPos.x,1.55,npcPos.z).addScaledVector(dirToPlayer, 1.35);
   group.position.copy(panelPos);
   group.lookAt(dollyWorldPos().x, 1.55, dollyWorldPos().z);
 
@@ -963,7 +980,7 @@ function answerQuestion(npc, option){
   panel.buttonMeshes.forEach(mesh=>{
     const isCorrectOpt = !!mesh.userData.option.correct;
     const tex = makeLabelTexture(mesh.userData.option.text, {
-      w:560, h:120, font:'bold 26px sans-serif', lineHeight:30,
+      w:740, h:150, font:'bold 34px sans-serif', lineHeight:38,
       border: isCorrectOpt ? '#33c17a' : '#e5484d',
       bg: isCorrectOpt ? 'rgba(18,58,38,.95)' : 'rgba(58,20,22,.95)',
       color: '#ffffff',
@@ -1021,16 +1038,42 @@ function raycastFrom(object, targets){
   return raycaster.intersectObjects(targets, true);
 }
 
+const MAX_TRACER_RANGE = 14;
+function spawnTracer(origin, direction, distance){
+  const end = origin.clone().addScaledVector(direction, distance);
+  const geo = new THREE.BufferGeometry().setFromPoints([origin.clone(), end]);
+  const mat = new THREE.LineBasicMaterial({ color:0xffd27a, transparent:true, opacity:0.95 });
+  const line = new THREE.Line(geo, mat);
+  line.renderOrder = 998;
+  line.frustumCulled = false;
+  scene.add(line);
+  const t0 = performance.now();
+  function fade(){
+    const t = (performance.now()-t0)/160;
+    if(t>=1){
+      scene.remove(line);
+      geo.dispose(); mat.dispose();
+      return;
+    }
+    mat.opacity = 0.95*(1-t);
+    requestAnimationFrame(fade);
+  }
+  requestAnimationFrame(fade);
+}
+
 function onControllerSelect(event){
   const controller = event.target;
   if(activePanel){
+    let hitDistance = MAX_TRACER_RANGE;
     if(!panelAnswering){
       const hits = raycastFrom(controller, activePanel.buttonMeshes);
       if(hits.length){
+        hitDistance = hits[0].distance;
         const ud = hits[0].object.userData;
         answerQuestion(ud.npc, ud.option);
       }
     }
+    spawnTracer(raycaster.ray.origin, raycaster.ray.direction, hitDistance);
     return;
   }
   const npcTargets = npcs.filter(n=>!n.answered).map(n=>n.group);
@@ -1040,15 +1083,19 @@ function onControllerSelect(event){
     while(obj.parent && !npcs.some(n=>n.group===obj)) obj = obj.parent;
     const npc = npcs.find(n=>n.group===obj);
     if(npc) openQuestionPanel(npc);
+    spawnTracer(raycaster.ray.origin, raycaster.ray.direction, npcHits[0].distance);
     return;
   }
   const mummyMeshes = mummies.filter(m=>m.alive).map(m=>m.mesh);
   const hits = raycastFrom(controller, mummyMeshes);
+  let hitDistance = MAX_TRACER_RANGE;
   if(hits.length){
+    hitDistance = hits[0].distance;
     let obj = hits[0].object;
     while(obj.parent && !mummies.some(m=>m.mesh===obj)) obj = obj.parent;
     killMummy(obj);
   }
+  spawnTracer(raycaster.ray.origin, raycaster.ray.direction, hitDistance);
 }
 
 /* ---------- modo escritorio (previsualización sin gafas) ---------- */
@@ -1076,13 +1123,20 @@ window.addEventListener('mousemove', (e)=>{
 });
 
 function doDesktopAction(){
+  raycaster.setFromCamera({x:0,y:0}, camera);
   if(activePanel){
-    raycaster.setFromCamera({x:0,y:0}, camera);
-    const hits = raycaster.intersectObjects(activePanel.buttonMeshes, true);
-    if(hits.length && !panelAnswering){ const ud=hits[0].object.userData; answerQuestion(ud.npc, ud.option); }
+    let hitDistance = MAX_TRACER_RANGE;
+    if(!panelAnswering){
+      const hits = raycaster.intersectObjects(activePanel.buttonMeshes, true);
+      if(hits.length){
+        hitDistance = hits[0].distance;
+        const ud = hits[0].object.userData;
+        answerQuestion(ud.npc, ud.option);
+      }
+    }
+    spawnTracer(raycaster.ray.origin, raycaster.ray.direction, hitDistance);
     return;
   }
-  raycaster.setFromCamera({x:0,y:0}, camera);
   const npcTargets = npcs.filter(n=>!n.answered).map(n=>n.group);
   const npcHits = raycaster.intersectObjects(npcTargets, true);
   if(npcHits.length){
@@ -1090,15 +1144,19 @@ function doDesktopAction(){
     while(obj.parent && !npcs.some(n=>n.group===obj)) obj = obj.parent;
     const npc = npcs.find(n=>n.group===obj);
     if(npc) openQuestionPanel(npc);
+    spawnTracer(raycaster.ray.origin, raycaster.ray.direction, npcHits[0].distance);
     return;
   }
   const mummyMeshes = mummies.filter(m=>m.alive).map(m=>m.mesh);
   const hits = raycaster.intersectObjects(mummyMeshes, true);
+  let hitDistance = MAX_TRACER_RANGE;
   if(hits.length){
+    hitDistance = hits[0].distance;
     let obj = hits[0].object;
     while(obj.parent && !mummies.some(m=>m.mesh===obj)) obj = obj.parent;
     killMummy(obj);
   }
+  spawnTracer(raycaster.ray.origin, raycaster.ray.direction, hitDistance);
 }
 
 /* =========================================================
@@ -1419,6 +1477,13 @@ function startGame(){
   dolly.position.set(start.x, 0, start.z);
   dolly.rotation.y = 0;
   yaw = 0; pitch = 0;
+  if(mobileMode){
+    minimapPlane.visible = false;
+    minimapMobileWrap.classList.remove('hidden');
+  } else {
+    minimapPlane.visible = true;
+    minimapMobileWrap.classList.add('hidden');
+  }
   drawHUD();
   state.running = true;
   overlayStart.classList.add('hidden');
