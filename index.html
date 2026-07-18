@@ -76,6 +76,49 @@
     letter-spacing:.02em;pointer-events:none;
   }
 
+  /* controles táctiles (modo móvil) */
+  #mobile-controls{ position:fixed; inset:0; z-index:15; pointer-events:none; }
+  #mobile-controls.hidden{ display:none; }
+  #dpad{
+    position:absolute; left:16px; bottom:16px;
+    width:174px; height:174px;
+    display:grid; grid-template-columns:56px 58px 56px; grid-template-rows:56px 58px 56px;
+    pointer-events:auto;
+  }
+  .dpad-btn{
+    background:rgba(28,33,40,.6); border:1px solid rgba(255,140,26,.55);
+    color:var(--accent); font-size:22px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    -webkit-user-select:none; user-select:none; touch-action:none;
+  }
+  .dpad-btn.active{ background:rgba(255,140,26,.35); }
+  .dpad-up{ grid-column:2; grid-row:1; }
+  .dpad-left{ grid-column:1; grid-row:2; }
+  .dpad-right{ grid-column:3; grid-row:2; }
+  .dpad-down{ grid-column:2; grid-row:3; }
+
+  #shoot-zone{
+    position:absolute; right:0; top:0; bottom:0; width:52%;
+    pointer-events:auto; touch-action:none;
+  }
+  #shoot-hint{
+    position:absolute; right:18px; bottom:30px; color:rgba(233,237,242,.55);
+    font-size:11.5px; text-align:right; max-width:150px; line-height:1.5;
+    pointer-events:none;
+  }
+
+  #exit-fullscreen-zone{
+    position:fixed; top:0; left:50%; transform:translateX(-50%);
+    width:170px; height:34px; z-index:30;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08); border-top:none;
+    border-bottom-left-radius:14px; border-bottom-right-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    color:rgba(255,255,255,.4); font-size:10.5px; letter-spacing:.05em;
+    cursor:pointer; -webkit-user-select:none; user-select:none;
+  }
+  #exit-fullscreen-zone.hidden{ display:none; }
+
   /* end screen */
   table.results{width:100%;border-collapse:collapse;margin:14px 0 6px;font-size:13px;}
   table.results th,table.results td{
@@ -106,6 +149,19 @@
 
 <canvas id="app-canvas"></canvas>
 
+<div id="mobile-controls" class="hidden">
+  <div id="dpad">
+    <div class="dpad-btn dpad-up" data-dir="up">▲</div>
+    <div class="dpad-btn dpad-left" data-dir="left">◀</div>
+    <div class="dpad-btn dpad-right" data-dir="right">▶</div>
+    <div class="dpad-btn dpad-down" data-dir="down">▼</div>
+  </div>
+  <div id="shoot-zone">
+    <div id="shoot-hint">Desliza para mirar alrededor<br/>toca para disparar</div>
+  </div>
+</div>
+<div id="exit-fullscreen-zone" class="hidden">⤢ salir de pantalla completa</div>
+
 <!-- PANTALLA DE INICIO -->
 <div class="screen" id="overlay-start">
   <div class="card">
@@ -116,7 +172,7 @@
     <ul class="instructions">
       <li><b>Movimiento (VR):</b> joystick del mando izquierdo para desplazarte, joystick del mando derecho para girar.</li>
       <li><b>Disparo / seleccionar respuesta (VR):</b> gatillo del mando.</li>
-      <li><b>Movimiento (móvil):</b> inclina el teléfono para caminar y girar; toca la pantalla para disparar.</li>
+      <li><b>Movimiento (móvil):</b> cruz táctil abajo a la izquierda para caminar; desliza el dedo a la derecha para mirar alrededor y toca para disparar.</li>
       <li><b>Momias:</b> dispárales para ganar 1 punto extra y suelta una moneda. Si te tocan, pierdes 1 punto.</li>
       <li><b>Preguntas:</b> acércate a un guardián y responde tocando una de las 4 opciones.</li>
     </ul>
@@ -141,7 +197,7 @@
     <div id="vr-btn-slot"></div>
     <div class="row" style="margin-top:10px;">
       <button class="btn secondary" id="btn-desktop" style="flex:1;">🖥️ Probar en modo escritorio (WASD + ratón)</button>
-      <button class="btn secondary" id="btn-mobile" style="flex:1;">📱 Probar en modo móvil (inclina y toca)</button>
+      <button class="btn secondary" id="btn-mobile" style="flex:1;">📱 Probar en modo móvil (controles táctiles)</button>
     </div>
     <div class="status" id="start-status"></div>
   </div>
@@ -1095,43 +1151,96 @@ function updateMovementDesktop(delta){
   dolly.position.x = p.x; dolly.position.z = p.z;
 }
 
-/* ---------- modo móvil (inclinar para moverte, tocar para disparar) ---------- */
+/* ---------- modo móvil (cruz táctil para moverte, zona derecha para mirar/disparar) ---------- */
 let mobileMode = false;
-let mobileCalibration = null;
-const mobileOrientation = { beta:0, gamma:0 };
-
-function handleDeviceOrientation(e){
-  if(e.beta === null || e.gamma === null) return;
-  mobileOrientation.beta = e.beta;
-  mobileOrientation.gamma = e.gamma;
-  if(!mobileCalibration){
-    mobileCalibration = { beta:e.beta, gamma:e.gamma };
-  }
-}
-
-function onMobileTap(e){
-  if(!mobileMode || renderer.xr.isPresenting) return;
-  e.preventDefault();
-  doDesktopAction();
-}
+const mobileMove = { up:false, down:false, left:false, right:false };
 
 function updateMovementMobile(delta){
-  if(!mobileCalibration) return;
-  const dBeta = mobileOrientation.beta - mobileCalibration.beta;   // adelante / atrás
-  const dGamma = mobileOrientation.gamma - mobileCalibration.gamma; // izquierda / derecha
-
-  dolly.rotation.y -= THREE.MathUtils.clamp(dGamma/28, -1, 1) * 1.7 * delta;
-
-  const forwardAmount = THREE.MathUtils.clamp(-dBeta/22, -1, 1);
-  if(Math.abs(forwardAmount) > 0.08){
-    const dir = new THREE.Vector3();
-    camera.getWorldDirection(dir); dir.y=0; dir.normalize();
-    const speed = forwardAmount * 2.6 * delta;
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir); dir.y=0; dir.normalize();
+  const right = dir.clone().applyAxisAngle(UP, -Math.PI/2);
+  let mx=0, mz=0;
+  const speed = 2.7*delta;
+  if(mobileMove.up){ mx+=dir.x*speed; mz+=dir.z*speed; }
+  if(mobileMove.down){ mx-=dir.x*speed; mz-=dir.z*speed; }
+  if(mobileMove.left){ mx-=right.x*speed; mz-=right.z*speed; }
+  if(mobileMove.right){ mx+=right.x*speed; mz+=right.z*speed; }
+  if(mx || mz){
     const p = { x:dolly.position.x, z:dolly.position.z };
-    tryMove(p, dir.x*speed, dir.z*speed, PLAYER_RADIUS);
+    tryMove(p, mx, mz, PLAYER_RADIUS);
     dolly.position.x = p.x; dolly.position.z = p.z;
   }
 }
+
+const mobileControlsEl = document.getElementById('mobile-controls');
+const shootZoneEl = document.getElementById('shoot-zone');
+
+document.querySelectorAll('.dpad-btn').forEach(btn=>{
+  const dir = btn.dataset.dir;
+  const start = (e)=>{ e.preventDefault(); mobileMove[dir] = true; btn.classList.add('active'); };
+  const end = (e)=>{ if(e) e.preventDefault(); mobileMove[dir] = false; btn.classList.remove('active'); };
+  btn.addEventListener('touchstart', start, { passive:false });
+  btn.addEventListener('touchend', end, { passive:false });
+  btn.addEventListener('touchcancel', end, { passive:false });
+  btn.addEventListener('mousedown', start);
+  window.addEventListener('mouseup', end);
+});
+
+let lookTouchId = null, lookLastX = 0, lookLastY = 0, lookStartTime = 0, lookMoved = false;
+camera.rotation.order = 'YXZ';
+
+shootZoneEl.addEventListener('touchstart', (e)=>{
+  if(!mobileMode) return;
+  const t = e.changedTouches[0];
+  lookTouchId = t.identifier;
+  lookLastX = t.clientX; lookLastY = t.clientY;
+  lookStartTime = performance.now();
+  lookMoved = false;
+  e.preventDefault();
+}, { passive:false });
+
+shootZoneEl.addEventListener('touchmove', (e)=>{
+  if(!mobileMode) return;
+  for(const t of e.changedTouches){
+    if(t.identifier !== lookTouchId) continue;
+    const dx = t.clientX - lookLastX;
+    const dy = t.clientY - lookLastY;
+    if(Math.abs(dx) > 3 || Math.abs(dy) > 3) lookMoved = true;
+    dolly.rotation.y -= dx * 0.0045;
+    camera.rotation.x = THREE.MathUtils.clamp(camera.rotation.x - dy*0.0032, -0.9, 0.9);
+    lookLastX = t.clientX; lookLastY = t.clientY;
+  }
+  e.preventDefault();
+}, { passive:false });
+
+shootZoneEl.addEventListener('touchend', (e)=>{
+  if(!mobileMode) return;
+  const elapsed = performance.now() - lookStartTime;
+  if(!lookMoved && elapsed < 350){
+    doDesktopAction();
+  }
+  lookTouchId = null;
+  e.preventDefault();
+}, { passive:false });
+
+/* ---------- pantalla completa ---------- */
+function requestFullscreenSafe(){
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+  if(req) req.call(el).catch(()=>{});
+}
+function exitFullscreenSafe(){
+  const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+  if(exit) exit.call(document).catch(()=>{});
+}
+const exitFsZone = document.getElementById('exit-fullscreen-zone');
+exitFsZone.addEventListener('click', exitFullscreenSafe);
+function updateFullscreenUI(){
+  const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  exitFsZone.classList.toggle('hidden', !isFs);
+}
+document.addEventListener('fullscreenchange', updateFullscreenUI);
+document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
 
 function checkNpcTriggers(){
   if(activePanel) return;
@@ -1321,6 +1430,7 @@ function startGame(){
 function endGame(){
   state.running = false;
   hintEl.classList.add('hidden');
+  mobileControlsEl.classList.add('hidden');
   closeQuestionPanel();
   if(renderer.xr.isPresenting){
     const session = renderer.xr.getSession();
@@ -1351,31 +1461,18 @@ function endGame(){
 document.getElementById('btn-desktop').addEventListener('click', ()=>{
   desktopMode = true;
   mobileMode = false;
+  mobileControlsEl.classList.add('hidden');
   startGame();
 });
 
-document.getElementById('btn-mobile').addEventListener('click', async ()=>{
-  try{
-    if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
-      const permission = await DeviceOrientationEvent.requestPermission();
-      if(permission !== 'granted'){
-        startStatus.textContent = 'Necesitamos permiso para acceder a los sensores de movimiento del teléfono.';
-        startStatus.classList.add('warn');
-        return;
-      }
-    }
-    mobileCalibration = null;
-    window.addEventListener('deviceorientation', handleDeviceOrientation);
-    canvas.addEventListener('touchend', onMobileTap, { passive:false });
-    mobileMode = true;
-    desktopMode = false;
-    startStatus.textContent = '';
-    startStatus.classList.remove('warn');
-    startGame();
-  }catch(err){
-    startStatus.textContent = 'Este dispositivo o navegador no permite acceder a los sensores de orientación.';
-    startStatus.classList.add('warn');
-  }
+document.getElementById('btn-mobile').addEventListener('click', ()=>{
+  mobileMode = true;
+  desktopMode = false;
+  startStatus.textContent = '';
+  startStatus.classList.remove('warn');
+  requestFullscreenSafe();
+  mobileControlsEl.classList.remove('hidden');
+  startGame();
 });
 
 document.getElementById('btn-restart').addEventListener('click', ()=>{
