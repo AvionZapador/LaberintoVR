@@ -114,10 +114,11 @@
     <div class="sub">Un laberinto estilo arcade en realidad virtual para repasar preguntas (por defecto materiales de uso técnico nivel de Secundaria). Responde a los guardianes que encuentres por el camino y cuidado con las momias.</div>
 
     <ul class="instructions">
-      <li><b>Movimiento:</b> joystick del mando izquierdo para desplazarte, joystick del mando derecho para girar.</li>
-      <li><b>Disparo / seleccionar respuesta:</b> gatillo del mando.</li>
-      <li><b>Momias:</b> dispárales para ganar 1 punto extra. Si te tocan, pierdes 1 punto.</li>
-      <li><b>Preguntas:</b> acércate a un guardián y responde tocando una de las 4 opciones con el rayo del mando.</li>
+      <li><b>Movimiento (VR):</b> joystick del mando izquierdo para desplazarte, joystick del mando derecho para girar.</li>
+      <li><b>Disparo / seleccionar respuesta (VR):</b> gatillo del mando.</li>
+      <li><b>Movimiento (móvil):</b> inclina el teléfono para caminar y girar; toca la pantalla para disparar.</li>
+      <li><b>Momias:</b> dispárales para ganar 1 punto extra y suelta una moneda. Si te tocan, pierdes 1 punto.</li>
+      <li><b>Preguntas:</b> acércate a un guardián y responde tocando una de las 4 opciones.</li>
     </ul>
 
     <div class="row">
@@ -140,6 +141,7 @@
     <div id="vr-btn-slot"></div>
     <div class="row" style="margin-top:10px;">
       <button class="btn secondary" id="btn-desktop" style="flex:1;">🖥️ Probar en modo escritorio (WASD + ratón)</button>
+      <button class="btn secondary" id="btn-mobile" style="flex:1;">📱 Probar en modo móvil (inclina y toca)</button>
     </div>
     <div class="status" id="start-status"></div>
   </div>
@@ -540,6 +542,14 @@ crossGroup.position.set(0,0,-0.5);
 crossGroup.renderOrder = 999;
 camera.add(crossGroup);
 
+/* ---------- destello de daño (al chocar con una momia) ---------- */
+const flashMat = new THREE.MeshBasicMaterial({ color:0xff8c1a, transparent:true, opacity:0, depthTest:false, depthWrite:false, side:THREE.DoubleSide });
+const flashPlane = new THREE.Mesh(new THREE.PlaneGeometry(6,6), flashMat);
+flashPlane.position.set(0,0,-0.2);
+flashPlane.renderOrder = 1000;
+camera.add(flashPlane);
+let flashIntensity = 0;
+
 /* ---------- minimapa (esquina superior izquierda) ---------- */
 const minimapCanvas = document.createElement('canvas');
 minimapCanvas.width = 260; minimapCanvas.height = 260;
@@ -725,6 +735,7 @@ function updateMummies(delta, playerPos){
       state.mummyHits++;
       state.score -= 1;
       playerInvuln = 1.4;
+      flashIntensity = 1;
       drawHUD();
       respawnMummy(m);
     }
@@ -1084,6 +1095,44 @@ function updateMovementDesktop(delta){
   dolly.position.x = p.x; dolly.position.z = p.z;
 }
 
+/* ---------- modo móvil (inclinar para moverte, tocar para disparar) ---------- */
+let mobileMode = false;
+let mobileCalibration = null;
+const mobileOrientation = { beta:0, gamma:0 };
+
+function handleDeviceOrientation(e){
+  if(e.beta === null || e.gamma === null) return;
+  mobileOrientation.beta = e.beta;
+  mobileOrientation.gamma = e.gamma;
+  if(!mobileCalibration){
+    mobileCalibration = { beta:e.beta, gamma:e.gamma };
+  }
+}
+
+function onMobileTap(e){
+  if(!mobileMode || renderer.xr.isPresenting) return;
+  e.preventDefault();
+  doDesktopAction();
+}
+
+function updateMovementMobile(delta){
+  if(!mobileCalibration) return;
+  const dBeta = mobileOrientation.beta - mobileCalibration.beta;   // adelante / atrás
+  const dGamma = mobileOrientation.gamma - mobileCalibration.gamma; // izquierda / derecha
+
+  dolly.rotation.y -= THREE.MathUtils.clamp(dGamma/28, -1, 1) * 1.7 * delta;
+
+  const forwardAmount = THREE.MathUtils.clamp(-dBeta/22, -1, 1);
+  if(Math.abs(forwardAmount) > 0.08){
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir); dir.y=0; dir.normalize();
+    const speed = forwardAmount * 2.6 * delta;
+    const p = { x:dolly.position.x, z:dolly.position.z };
+    tryMove(p, dir.x*speed, dir.z*speed, PLAYER_RADIUS);
+    dolly.position.x = p.x; dolly.position.z = p.z;
+  }
+}
+
 function checkNpcTriggers(){
   if(activePanel) return;
   const playerPos = dollyWorldPos();
@@ -1103,6 +1152,7 @@ function render(){
   if(state.running){
     if(renderer.xr.isPresenting) updateMovementXR(delta);
     else if(desktopMode) updateMovementDesktop(delta);
+    else if(mobileMode) updateMovementMobile(delta);
     const playerPos = dollyWorldPos();
     updateMummies(delta, playerPos);
     updateCoins(delta, playerPos);
@@ -1117,6 +1167,10 @@ function render(){
       drawMinimap(playerPos, Math.atan2(dir.x, -dir.z));
       minimapTimer = 0.15;
     }
+  }
+  if(flashIntensity > 0){
+    flashIntensity = Math.max(0, flashIntensity - delta*1.8);
+    flashMat.opacity = flashIntensity * 0.38;
   }
   renderer.render(scene, camera);
 }
@@ -1296,7 +1350,32 @@ function endGame(){
 
 document.getElementById('btn-desktop').addEventListener('click', ()=>{
   desktopMode = true;
+  mobileMode = false;
   startGame();
+});
+
+document.getElementById('btn-mobile').addEventListener('click', async ()=>{
+  try{
+    if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+      const permission = await DeviceOrientationEvent.requestPermission();
+      if(permission !== 'granted'){
+        startStatus.textContent = 'Necesitamos permiso para acceder a los sensores de movimiento del teléfono.';
+        startStatus.classList.add('warn');
+        return;
+      }
+    }
+    mobileCalibration = null;
+    window.addEventListener('deviceorientation', handleDeviceOrientation);
+    canvas.addEventListener('touchend', onMobileTap, { passive:false });
+    mobileMode = true;
+    desktopMode = false;
+    startStatus.textContent = '';
+    startStatus.classList.remove('warn');
+    startGame();
+  }catch(err){
+    startStatus.textContent = 'Este dispositivo o navegador no permite acceder a los sensores de orientación.';
+    startStatus.classList.add('warn');
+  }
 });
 
 document.getElementById('btn-restart').addEventListener('click', ()=>{
@@ -1305,17 +1384,34 @@ document.getElementById('btn-restart').addEventListener('click', ()=>{
 });
 
 document.getElementById('btn-share').addEventListener('click', async ()=>{
-  const text = `Laberinto VR de Preguntas :-) — IES Santa Engracia · STEAM 4.0 - SCS\nPuntuación: ${state.score}\nAciertos: ${state.correct}/${state.answers.length}\nMomias abatidas: ${state.mummyKills}\nGolpes recibidos: ${state.mummyHits}`;
+  let text = 'Resultados — Laberinto VR de Preguntas :-)\n';
+  text += 'IES Santa Engracia · STEAM 4.0 - SCS\n\n';
+  text += `Puntuación final: ${state.score}\n`;
+  text += `Aciertos: ${state.correct}/${state.answers.length}\n`;
+  text += `Momias abatidas: ${state.mummyKills}\n`;
+  text += `Golpes recibidos: ${state.mummyHits}\n\n`;
+  text += 'Detalle de respuestas:\n';
+  state.answers.forEach((a,i)=>{
+    text += `${i+1}. ${a.question}\n   → ${a.chosen} ${a.correct ? '(✅ correcta)' : '(❌ incorrecta)'}\n`;
+  });
+
   const statusEl = document.getElementById('share-status');
   try{
     if(navigator.share){
-      await navigator.share({ title:'Resultados — Laberinto VR de Materiales', text });
+      // Nota: se comparte solo "text" (sin "title" ni "url"), ya que algunas apps
+      // como WhatsApp solo leen ese campo y rechazan el contenido como "vacío"
+      // si el navegador reparte el mensaje entre "title" y "text".
+      await navigator.share({ text });
       statusEl.textContent = '';
     } else {
       await navigator.clipboard.writeText(text);
       statusEl.textContent = 'Resultados copiados al portapapeles ✅';
     }
   }catch(err){
+    if(err && err.name === 'AbortError'){
+      statusEl.textContent = '';
+      return;
+    }
     try{
       await navigator.clipboard.writeText(text);
       statusEl.textContent = 'Resultados copiados al portapapeles ✅';
