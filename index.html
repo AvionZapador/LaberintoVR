@@ -6,8 +6,8 @@
 <title>Laberinto VR de Preguntas :-)</title>
 <style>
   :root{
-    --bg: #14171c;
-    --panel: #1c2128;
+    --bg: #1c2129;
+    --panel: #262d38;
     --accent: #ff8c1a;
     --accent2: #3fa7ff;
     --ok: #33c17a;
@@ -111,10 +111,20 @@
     pointer-events:auto; touch-action:none;
   }
   #shoot-hint{
-    position:absolute; right:18px; bottom:30px; color:rgba(233,237,242,.55);
+    position:absolute; right:18px; bottom:150px; color:rgba(233,237,242,.55);
     font-size:11.5px; text-align:right; max-width:150px; line-height:1.5;
     pointer-events:none;
   }
+  #shoot-btn{
+    position:fixed; right:16px; bottom:69px;
+    width:64px; height:64px; z-index:17;
+    background:rgba(229,72,77,.28); border:2px solid #e5484d;
+    color:#ffb3b5; font-size:26px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    -webkit-user-select:none; user-select:none; touch-action:none;
+    pointer-events:auto;
+  }
+  #shoot-btn.active{ background:rgba(229,72,77,.55); }
 
   #exit-fullscreen-zone{
     position:fixed; top:0; left:50%; transform:translateX(-50%);
@@ -167,8 +177,9 @@
     <div class="dpad-btn dpad-down" data-dir="down">▼</div>
   </div>
   <div id="shoot-zone">
-    <div id="shoot-hint">Desliza para mirar alrededor<br/>toca para disparar</div>
+    <div id="shoot-hint">Desliza para mirar alrededor</div>
   </div>
+  <div id="shoot-btn">🎯</div>
 </div>
 <div id="exit-fullscreen-zone" class="hidden">⤢ salir de pantalla completa</div>
 
@@ -179,10 +190,16 @@
     <h1>Laberinto <span>VR</span> de Preguntas :-)</h1>
     <div class="sub">Un laberinto estilo arcade en realidad virtual para repasar preguntas (por defecto materiales de uso técnico nivel de Secundaria). Responde a los guardianes que encuentres por el camino y cuidado con las momias.</div>
 
+    <div class="row" style="display:block;">
+      <label for="player-name" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">Tu nombre *</label>
+      <input type="text" id="player-name" placeholder="Escribe tu nombre" maxlength="24"
+        style="width:100%;padding:12px 14px;border-radius:7px;border:1px solid #394252;background:#232a33;color:var(--text);font-size:14.5px;" />
+    </div>
+
     <ul class="instructions">
       <li><b>Movimiento (VR):</b> joystick del mando izquierdo para desplazarte, joystick del mando derecho para girar.</li>
       <li><b>Disparo / seleccionar respuesta (VR):</b> gatillo del mando.</li>
-      <li><b>Movimiento (móvil):</b> cruz táctil abajo a la izquierda para caminar; desliza el dedo a la derecha para mirar alrededor y toca para disparar.</li>
+      <li><b>Movimiento (móvil):</b> cruz táctil abajo a la izquierda para caminar; desliza el dedo a la derecha para mirar alrededor; botón 🎯 abajo a la derecha para disparar.</li>
       <li><b>Momias:</b> dispárales para ganar 1 punto extra y suelta una moneda. Si te tocan, pierdes 1 punto.</li>
       <li><b>Preguntas:</b> acércate a un guardián y responde tocando una de las 4 opciones.</li>
     </ul>
@@ -218,7 +235,7 @@
   <div class="card">
     <div class="eyebrow">Resultados</div>
     <h1>Fin de la <span>partida</span></h1>
-    <div class="sub">Este ha sido tu recorrido por el laberinto de materiales técnicos.</div>
+    <div class="sub">Jugador: <b id="result-player-name" style="color:var(--accent);"></b></div>
 
     <div class="stat-grid">
       <div class="stat ok"><div class="n" id="stat-correct">0</div><div class="l">Aciertos</div></div>
@@ -354,14 +371,14 @@ scene.add(dolly);
 /* ---------- ciclo día/noche del cielo (muy lento) ---------- */
 const SKY_CYCLE_SECONDS = 300; // 5 minutos por ciclo completo
 const SKY_LIGHT = {
-  bg: new THREE.Color(0x2b3140), hemiSky: new THREE.Color(0xcfe0f5),
-  hemiGround: new THREE.Color(0x3a4048), hemiIntensity: 1.0,
-  dirColor: new THREE.Color(0xfff2d8), dirIntensity: 0.85,
+  bg: new THREE.Color(0x3a4152), hemiSky: new THREE.Color(0xdcebfa),
+  hemiGround: new THREE.Color(0x4c5460), hemiIntensity: 1.25,
+  dirColor: new THREE.Color(0xfff6e2), dirIntensity: 1.0,
 };
 const SKY_DARK = {
-  bg: new THREE.Color(0x0a0c10), hemiSky: new THREE.Color(0x232a38),
-  hemiGround: new THREE.Color(0x0e1014), hemiIntensity: 0.28,
-  dirColor: new THREE.Color(0x7d8fb5), dirIntensity: 0.18,
+  bg: new THREE.Color(0x181c24), hemiSky: new THREE.Color(0x3a4356),
+  hemiGround: new THREE.Color(0x20242c), hemiIntensity: 0.5,
+  dirColor: new THREE.Color(0x93a3c4), dirIntensity: 0.32,
 };
 let skyTime = 0;
 function updateSkyCycle(delta){
@@ -402,7 +419,7 @@ function makeCanvasTexture(draw, w=256, h=256){
 }
 
 const wallTexture = makeCanvasTexture((ctx,w,h)=>{
-  ctx.fillStyle = '#6e7885'; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle = '#828d99'; ctx.fillRect(0,0,w,h);
   ctx.strokeStyle = 'rgba(25,28,33,.3)'; ctx.lineWidth=3;
   const rows=6, cols=4;
   for(let r=0;r<rows;r++){
@@ -423,7 +440,7 @@ wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
 wallTexture.repeat.set(1,1);
 
 const floorTexture = makeCanvasTexture((ctx,w,h)=>{
-  ctx.fillStyle = '#333941'; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle = '#3f4652'; ctx.fillRect(0,0,w,h);
   ctx.strokeStyle = 'rgba(130,195,255,.3)'; ctx.lineWidth=2;
   const step = w/8;
   for(let i=0;i<=8;i++){
@@ -536,7 +553,7 @@ function buildMazeMeshes(){
   floor.position.y = 0;
   mazeGroup.add(floor);
 
-  const ceilMat = new THREE.MeshStandardMaterial({ color:0x454b54, roughness:1 });
+  const ceilMat = new THREE.MeshStandardMaterial({ color:0x545b66, roughness:1 });
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(floorSize, floorSize), ceilMat);
   ceil.rotation.x = Math.PI/2;
   ceil.position.y = WALL_HEIGHT;
@@ -704,6 +721,7 @@ const state = {
   answers: [],
   running: false,
 };
+let playerName = 'Jugador';
 
 const PLAYER_RADIUS = 0.45;
 const NPC_TRIGGER_RADIUS = 2.6;
@@ -1039,6 +1057,8 @@ function raycastFrom(object, targets){
 }
 
 const MAX_TRACER_RANGE = 14;
+const TRACER_LIFETIME = 1.0; // segundos
+let activeTracers = [];
 function spawnTracer(origin, direction, distance){
   const end = origin.clone().addScaledVector(direction, distance);
   const geo = new THREE.BufferGeometry().setFromPoints([origin.clone(), end]);
@@ -1047,18 +1067,20 @@ function spawnTracer(origin, direction, distance){
   line.renderOrder = 998;
   line.frustumCulled = false;
   scene.add(line);
-  const t0 = performance.now();
-  function fade(){
-    const t = (performance.now()-t0)/160;
-    if(t>=1){
-      scene.remove(line);
-      geo.dispose(); mat.dispose();
-      return;
+  activeTracers.push({ line, mat, geo, life: TRACER_LIFETIME });
+}
+function updateTracers(delta){
+  for(let i=activeTracers.length-1; i>=0; i--){
+    const t = activeTracers[i];
+    t.life -= delta;
+    if(t.life <= 0){
+      scene.remove(t.line);
+      t.geo.dispose(); t.mat.dispose();
+      activeTracers.splice(i,1);
+    } else {
+      t.mat.opacity = Math.min(1, t.life/TRACER_LIFETIME) * 0.95;
     }
-    mat.opacity = 0.95*(1-t);
-    requestAnimationFrame(fade);
   }
-  requestAnimationFrame(fade);
 }
 
 function onControllerSelect(event){
@@ -1273,13 +1295,26 @@ shootZoneEl.addEventListener('touchmove', (e)=>{
 
 shootZoneEl.addEventListener('touchend', (e)=>{
   if(!mobileMode) return;
-  const elapsed = performance.now() - lookStartTime;
-  if(!lookMoved && elapsed < 350){
-    doDesktopAction();
-  }
   lookTouchId = null;
   e.preventDefault();
 }, { passive:false });
+
+const shootBtnEl = document.getElementById('shoot-btn');
+const shootBtnStart = (e)=>{
+  if(!mobileMode) return;
+  e.preventDefault();
+  shootBtnEl.classList.add('active');
+  doDesktopAction();
+};
+const shootBtnEnd = (e)=>{
+  if(e) e.preventDefault();
+  shootBtnEl.classList.remove('active');
+};
+shootBtnEl.addEventListener('touchstart', shootBtnStart, { passive:false });
+shootBtnEl.addEventListener('touchend', shootBtnEnd, { passive:false });
+shootBtnEl.addEventListener('touchcancel', shootBtnEnd, { passive:false });
+shootBtnEl.addEventListener('mousedown', shootBtnStart);
+window.addEventListener('mouseup', shootBtnEnd);
 
 /* ---------- pantalla completa ---------- */
 function requestFullscreenSafe(){
@@ -1339,6 +1374,7 @@ function render(){
     flashIntensity = Math.max(0, flashIntensity - delta*1.8);
     flashMat.opacity = flashIntensity * 0.38;
   }
+  updateTracers(delta);
   renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(render);
@@ -1470,6 +1506,8 @@ function resetState(){
 
 function startGame(){
   resetState();
+  const nameInput = document.getElementById('player-name');
+  playerName = (nameInput.value || '').trim() || 'Jugador';
   grid = cellsToGrid(generateMazeCells(MAZE_W, MAZE_H), MAZE_W, MAZE_H);
   buildMazeMeshes();
   spawnNpcs();
@@ -1506,6 +1544,7 @@ function endGame(){
   document.getElementById('stat-kills').textContent = state.mummyKills;
   document.getElementById('stat-hits').textContent = state.mummyHits;
   document.getElementById('stat-total').textContent = state.score;
+  document.getElementById('result-player-name').textContent = playerName;
 
   const tbody = document.querySelector('#results-table tbody');
   tbody.innerHTML = '';
@@ -1523,7 +1562,21 @@ function endGame(){
   overlayEnd.classList.remove('hidden');
 }
 
+function requireNameOrWarn(){
+  const val = (document.getElementById('player-name').value || '').trim();
+  if(!val){
+    startStatus.textContent = 'Escribe tu nombre antes de empezar.';
+    startStatus.classList.add('warn');
+    document.getElementById('player-name').focus();
+    return false;
+  }
+  startStatus.textContent = '';
+  startStatus.classList.remove('warn');
+  return true;
+}
+
 document.getElementById('btn-desktop').addEventListener('click', ()=>{
+  if(!requireNameOrWarn()) return;
   desktopMode = true;
   mobileMode = false;
   mobileControlsEl.classList.add('hidden');
@@ -1531,10 +1584,9 @@ document.getElementById('btn-desktop').addEventListener('click', ()=>{
 });
 
 document.getElementById('btn-mobile').addEventListener('click', ()=>{
+  if(!requireNameOrWarn()) return;
   mobileMode = true;
   desktopMode = false;
-  startStatus.textContent = '';
-  startStatus.classList.remove('warn');
   requestFullscreenSafe();
   mobileControlsEl.classList.remove('hidden');
   startGame();
@@ -1548,6 +1600,7 @@ document.getElementById('btn-restart').addEventListener('click', ()=>{
 document.getElementById('btn-share').addEventListener('click', async ()=>{
   let text = 'Resultados — Laberinto VR de Preguntas :-)\n';
   text += 'IES Santa Engracia · STEAM 4.0 - SCS\n\n';
+  text += `Jugador: ${playerName}\n`;
   text += `Puntuación final: ${state.score}\n`;
   text += `Aciertos: ${state.correct}/${state.answers.length}\n`;
   text += `Momias abatidas: ${state.mummyKills}\n`;
@@ -1588,9 +1641,18 @@ if('xr' in navigator){
   navigator.xr.isSessionSupported('immersive-vr').then(supported=>{
     if(supported){
       const btn = VRButton.createButton(renderer);
+      // valida el nombre ANTES de que el propio VRButton abra la sesión inmersiva
+      btn.addEventListener('click', (e)=>{
+        if(!requireNameOrWarn()){
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+      }, true);
       document.getElementById('vr-btn-slot').appendChild(btn);
       renderer.xr.addEventListener('sessionstart', ()=>{
         desktopMode = false;
+        mobileMode = false;
+        mobileControlsEl.classList.add('hidden');
         startGame();
       });
       renderer.xr.addEventListener('sessionend', ()=>{
