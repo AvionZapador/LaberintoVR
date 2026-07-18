@@ -6,8 +6,8 @@
 <title>Laberinto VR de Preguntas :-)</title>
 <style>
   :root{
-    --bg: #1c2129;
-    --panel: #262d38;
+    --bg: #101a30;
+    --panel: #16233f;
     --accent: #ff8c1a;
     --accent2: #3fa7ff;
     --ok: #33c17a;
@@ -25,13 +25,13 @@
   .screen{
     position:fixed;inset:0;z-index:20;
     display:flex;align-items:center;justify-content:center;
-    background:radial-gradient(ellipse at 50% 20%, #23282f 0%, #0d0f12 70%);
+    background:radial-gradient(ellipse at 50% 20%, #1c2c4d 0%, #0a1122 70%);
     padding:24px;
   }
   .card{
     width:min(640px,92vw);
     background:var(--panel);
-    border:1px solid #2c333d;
+    border:1px solid #2a3a5c;
     border-radius:10px;
     padding:32px 30px;
     box-shadow:0 20px 60px rgba(0,0,0,.55);
@@ -157,7 +157,7 @@
 
   #vr-btn-slot{margin-bottom:4px;}
   #vr-btn-slot button{
-    position:static !important; width:100%; margin:0 !important;
+    position:static !important; width:100% !important; margin:0 !important;
     padding:14px !important; border-radius:7px !important; font-size:15px !important;
     font-weight:700 !important; letter-spacing:.02em;
   }
@@ -186,23 +186,40 @@
 <!-- PANTALLA DE INICIO -->
 <div class="screen" id="overlay-start">
   <div class="card">
-    <div class="eyebrow">IES Santa Engracia · STEAM 4.0 - SCS</div>
-    <h1>Laberinto <span>VR</span> de Preguntas :-)</h1>
-    <div class="sub">Un laberinto estilo arcade en realidad virtual para repasar preguntas (por defecto materiales de uso técnico nivel de Secundaria). Responde a los guardianes que encuentres por el camino y cuidado con las momias.</div>
+    <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:0;">
+      <div>
+        <div class="eyebrow">IES Santa Engracia · STEAM 4.0 - SCS</div>
+        <h1>Laberinto <span>VR</span> de Preguntas :-)</h1>
+      </div>
+      <button class="btn ghost" id="btn-info" title="Cómo jugar y formato del fichero de preguntas"
+        style="flex-shrink:0;width:38px;height:38px;padding:0;border-radius:50%;font-weight:800;font-size:16px;">?</button>
+    </div>
+    <div class="sub">Un laberinto estilo arcade en realidad virtual para repasar preguntas (por defecto iniciación a la programación con MicroBit). Responde a los guardianes que encuentres por el camino y cuidado con los robots.</div>
+
+    <div id="info-panel" class="hidden" style="background:#1a2338;border:1px solid #2c3a52;border-radius:9px;padding:16px 18px;margin-bottom:16px;">
+      <ul class="instructions" style="margin-bottom:16px;">
+        <li><b>Movimiento (VR):</b> joystick del mando izquierdo para desplazarte, joystick del mando derecho para girar.</li>
+        <li><b>Disparo / seleccionar respuesta (VR):</b> gatillo del mando.</li>
+        <li><b>Movimiento (móvil):</b> cruz táctil abajo a la izquierda para caminar; desliza el dedo a la derecha para mirar alrededor; botón 🎯 para disparar.</li>
+        <li><b>Robots:</b> dispárales para ganar 1 punto extra y suelta una moneda. Si te tocan, pierdes 1 punto.</li>
+        <li><b>Preguntas:</b> acércate a un guardián y responde tocando una de las 4 opciones.</li>
+      </ul>
+      <div class="divider"></div>
+      <div class="eyebrow" style="margin-bottom:8px;">Formato del fichero de preguntas (.txt)</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:10px;">
+        Una pregunta por línea, con la pregunta y las 4 opciones separadas por punto y coma (<code>;</code>).
+        Marca la respuesta correcta poniendo un asterisco (<code>*</code>) justo después del punto y coma que la precede, sin espacio.
+      </div>
+      <div style="background:#10151f;border:1px solid #2c333d;border-radius:7px;padding:10px 12px;font-family:monospace;font-size:12px;color:#dbe2ea;overflow-x:auto;white-space:pre;">pregunta;opción1;opción2;opción3;opción4
+¿Cuál es la capital de Francia?;Madrid;*París;Londres;Roma</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;">Puedes incluir tantas líneas/preguntas como quieras; se colocará un guardián por cada una.</div>
+    </div>
 
     <div class="row" style="display:block;">
       <label for="player-name" style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">Tu nombre *</label>
       <input type="text" id="player-name" placeholder="Escribe tu nombre" maxlength="24"
         style="width:100%;padding:12px 14px;border-radius:7px;border:1px solid #394252;background:#232a33;color:var(--text);font-size:14.5px;" />
     </div>
-
-    <ul class="instructions">
-      <li><b>Movimiento (VR):</b> joystick del mando izquierdo para desplazarte, joystick del mando derecho para girar.</li>
-      <li><b>Disparo / seleccionar respuesta (VR):</b> gatillo del mando.</li>
-      <li><b>Movimiento (móvil):</b> cruz táctil abajo a la izquierda para caminar; desliza el dedo a la derecha para mirar alrededor; botón 🎯 abajo a la derecha para disparar.</li>
-      <li><b>Momias:</b> dispárales para ganar 1 punto extra y suelta una moneda. Si te tocan, pierdes 1 punto.</li>
-      <li><b>Preguntas:</b> acércate a un guardián y responde tocando una de las 4 opciones.</li>
-    </ul>
 
     <div class="row">
       <label class="file-label" for="file-input">
@@ -240,13 +257,17 @@
     <div class="stat-grid">
       <div class="stat ok"><div class="n" id="stat-correct">0</div><div class="l">Aciertos</div></div>
       <div class="stat bad"><div class="n" id="stat-wrong">0</div><div class="l">Fallos</div></div>
-      <div class="stat accent"><div class="n" id="stat-kills">0</div><div class="l">Momias abatidas</div></div>
+      <div class="stat accent"><div class="n" id="stat-kills">0</div><div class="l">Robots abatidos</div></div>
       <div class="stat bad"><div class="n" id="stat-hits">0</div><div class="l">Golpes recibidos</div></div>
     </div>
-    <div class="row" style="justify-content:center;">
+    <div class="row" style="justify-content:center;gap:10px;">
       <div class="stat" style="min-width:160px;">
         <div class="n" id="stat-total" style="color:var(--accent2);">0</div>
         <div class="l">Puntuación final</div>
+      </div>
+      <div class="stat" style="min-width:160px;">
+        <div class="n" id="stat-time" style="color:var(--accent2);">0:00</div>
+        <div class="l">Tiempo total</div>
       </div>
     </div>
 
@@ -264,7 +285,7 @@
   </div>
 </div>
 
-<div class="hidden" id="hint">Acércate a un guardián para responder · dispara a las momias</div>
+<div class="hidden" id="hint">Acércate a un guardián para responder · dispara a los robots</div>
 
 <script type="importmap">
 {
@@ -281,26 +302,26 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
 
 /* =========================================================
-   PREGUNTAS POR DEFECTO — MATERIALES DE USO TÉCNICO (ESO)
+   PREGUNTAS POR DEFECTO — INICIACIÓN A LA PROGRAMACIÓN CON MICROBIT
    Formato: pregunta;opcion1;opcion2;opcion3;opcion4
    El asterisco justo tras el ";" marca la opción correcta.
 ========================================================= */
 const DEFAULT_QUESTIONS_TXT = `
-¿Qué material se obtiene fundiendo mineral de hierro en un alto horno?;Bronce;*Fundición (arrabio);Latón;Acero inoxidable
-¿Cuál de los siguientes es un material termoplástico?;Baquelita;Resina de poliéster;*PVC;Melamina
-¿Qué propiedad indica la resistencia de un material a ser rayado?;Elasticidad;Tenacidad;*Dureza;Ductilidad
-¿Qué aleación se forma con cobre y estaño?;Latón;*Bronce;Acero;Duraluminio
-¿Cuál de estos materiales es un elastómero?;Poliestireno;Metacrilato;*Caucho natural;Contrachapado
-¿Qué proceso une dos piezas metálicas fundiendo material de aporte?;Remachado;Atornillado;*Soldadura;Doblado
-¿Qué madera se obtiene encolando láminas finas en capas cruzadas?;Aglomerado;MDF;*Contrachapado;Tablero de fibras
-¿Qué propiedad permite a un material recuperar su forma tras deformarse?;Plasticidad;*Elasticidad;Fragilidad;Maleabilidad
-¿Qué metal es el principal componente del acero?;*Hierro;Aluminio;Cobre;Estaño
-¿Qué material cerámico se obtiene cociendo arcilla?;Vidrio;*Cerámica (barro cocido);Hormigón;Yeso
-¿Cómo se llama la capacidad de un material para deformarse en láminas sin romperse?;Ductilidad;Tenacidad;*Maleabilidad;Dureza
-¿Qué material compuesto se forma con fibra de vidrio y resina?;Aglomerado;*Fibra de vidrio reforzada;Latón;Bronce
-¿Qué tratamiento se aplica al acero para aumentar su dureza superficial?;Laminado;*Temple;Fundido;Pulido
-¿Qué material se usa en circuitos impresos por su aislamiento eléctrico?;Aluminio;Cobre;*Baquelita (resina fenólica);Acero
-¿Cuál de estos NO es un material pétreo?;Granito;Mármol;Pizarra;*Poliuretano
+¿Qué es el micro:bit?;Un lenguaje de programación;*Una placa programable con sensores y LEDs;Un tipo de robot;Una aplicación de móvil
+¿Cuántos LEDs tiene la matriz del micro:bit?;*25;16;64;10
+¿Qué entorno visual se usa habitualmente para programar el micro:bit por bloques?;Scratch;*MakeCode;Arduino IDE;Python IDLE
+¿Qué bloque se usa para repetir una acción un número determinado de veces?;si... entonces;*repetir;mientras;al iniciar
+¿Qué sensor del micro:bit detecta el movimiento y la inclinación?;Sensor de luz;*Acelerómetro;Sensor de temperatura;Micrófono
+¿Qué botones físicos tiene el micro:bit en su placa?;*A y B;X e Y;Arriba y abajo;Solo uno
+¿Qué bloque de MakeCode se ejecuta una sola vez al encender la placa?;siempre;*al iniciar;repetir;si presiona A
+¿En qué lenguaje de texto se puede programar también el micro:bit además de bloques?;*Python;Java;C#;PHP
+¿Qué componente permite al micro:bit detectar la orientación de la brújula?;Acelerómetro;*Magnetómetro (brújula);Micrófono;Altavoz
+¿Qué bloque se usa para mostrar un icono en la matriz de LEDs?;reproducir sonido;*mostrar icono;girar motor;encender sensor
+¿Cómo se llama la variable que guarda un valor que puede cambiar durante el programa?;constante;*variable;función;bucle
+¿Qué estructura permite ejecutar un bloque de código solo si se cumple una condición?;bucle repetir;*condicional si... entonces;variable;función
+¿Qué puerto se usa para conectar el micro:bit al ordenador y cargar el programa?;Bluetooth;*USB;HDMI;Jack de audio
+¿Qué unidad mide la temperatura que puede leer el sensor interno del micro:bit?;Voltios;*Grados Celsius;Amperios;Lúmenes
+¿Qué permite hacer el radio del micro:bit?;Solo cargar programas;*Comunicarse de forma inalámbrica con otro micro:bit;Medir temperatura;Grabar sonido
 `.trim();
 
 function parseQuestions(txt){
@@ -364,6 +385,7 @@ scene.background = new THREE.Color(0x232833);
 scene.fog = new THREE.Fog(0x232833, 8, 30);
 
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.05, 100);
+camera.position.y = 0.35; // punto de vista un poco más elevado
 const dolly = new THREE.Group();
 dolly.add(camera);
 scene.add(dolly);
@@ -440,8 +462,8 @@ wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
 wallTexture.repeat.set(1,1);
 
 const floorTexture = makeCanvasTexture((ctx,w,h)=>{
-  ctx.fillStyle = '#3f4652'; ctx.fillRect(0,0,w,h);
-  ctx.strokeStyle = 'rgba(130,195,255,.3)'; ctx.lineWidth=2;
+  ctx.fillStyle = '#7c8ba0'; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle = 'rgba(35,48,68,.35)'; ctx.lineWidth=2;
   const step = w/8;
   for(let i=0;i<=8;i++){
     ctx.beginPath(); ctx.moveTo(i*step,0); ctx.lineTo(i*step,h); ctx.stroke();
@@ -607,7 +629,7 @@ function drawHUD(){
   ctx.fillText(`Preguntas: ${state.answers.length}/${QUESTIONS.length}`, 20, 78);
   ctx.fillStyle = '#8b96a5';
   ctx.font = '16px sans-serif';
-  ctx.fillText(`Momias: +${state.mummyKills}  Golpes: -${state.mummyHits}`, 20, 104);
+  ctx.fillText(`Robots: +${state.mummyKills}  Golpes: -${state.mummyHits}`, 20, 104);
   hudTexture.needsUpdate = true;
 }
 const hudMat = new THREE.MeshBasicMaterial({ map:hudTexture, transparent:true, depthTest:false });
@@ -625,7 +647,7 @@ crossGroup.position.set(0,0,-0.5);
 crossGroup.renderOrder = 999;
 camera.add(crossGroup);
 
-/* ---------- destello de daño (al chocar con una momia) ---------- */
+/* ---------- destello de daño (al chocar con un robot) ---------- */
 const flashMat = new THREE.MeshBasicMaterial({ color:0xff8c1a, transparent:true, opacity:0, depthTest:false, depthWrite:false, side:THREE.DoubleSide });
 const flashPlane = new THREE.Mesh(new THREE.PlaneGeometry(6,6), flashMat);
 flashPlane.position.set(0,0,-0.2);
@@ -722,6 +744,8 @@ const state = {
   running: false,
 };
 let playerName = 'Jugador';
+let gameStartTime = 0;
+let elapsedSeconds = 0;
 
 const PLAYER_RADIUS = 0.45;
 const NPC_TRIGGER_RADIUS = 2.6;
@@ -751,22 +775,22 @@ function makeGuardianMesh(){
   return g;
 }
 
-/* ---------- momia ---------- */
+/* ---------- robot ---------- */
 function makeMummyMesh(){
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color:0xd8cfae, roughness:1 });
-  const bandageMat = new THREE.MeshStandardMaterial({ color:0xbfb491, roughness:1 });
+  const mat = new THREE.MeshStandardMaterial({ color:0x8a94a3, roughness:.45, metalness:.6 });
+  const trimMat = new THREE.MeshStandardMaterial({ color:0x5b6472, roughness:.4, metalness:.65 });
   const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3,0.75,4,8), mat);
   body.position.y = 0.85;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24,10,10), bandageMat);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24,10,10), trimMat);
   head.position.y = 1.5;
-  const eyeMat = new THREE.MeshBasicMaterial({ color:0xff2222 });
+  const eyeMat = new THREE.MeshBasicMaterial({ color:0xff3b30 });
   const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.035,6,6), eyeMat);
   eyeL.position.set(-0.08,1.52,0.2);
   const eyeR = eyeL.clone(); eyeR.position.x = 0.08;
   g.add(body, head, eyeL, eyeR);
   for(let i=0;i<3;i++){
-    const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.31,0.03,6,12), bandageMat);
+    const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.31,0.03,6,12), trimMat);
     wrap.rotation.x = Math.PI/2;
     wrap.position.y = 0.5 + i*0.35;
     g.add(wrap);
@@ -787,7 +811,7 @@ function spawnNpcs(){
     mazeGroup.add(group);
     npcs.push({ group, question: QUESTIONS[i], answered:false, pos:new THREE.Vector3(w.x,0,w.z) });
   }
-  // puntos de aparición de momias: celdas abiertas restantes
+  // puntos de aparición de robots: celdas abiertas restantes
   mummySpawnPoints = cells.slice(nQuestions, nQuestions+10).map(c=>gridToWorld(c.gx,c.gy));
   if(mummySpawnPoints.length===0) mummySpawnPoints=[gridToWorld(GW-2,GH-2)];
 }
@@ -840,7 +864,7 @@ function respawnMummy(m){
   m.mesh.position.copy(m.pos);
 }
 
-/* ---------- monedas (recompensa al abatir una momia) ---------- */
+/* ---------- monedas (recompensa al abatir un robot) ---------- */
 let coins = [];
 const COIN_PICKUP_RADIUS = 0.55;
 
@@ -1389,6 +1413,10 @@ let usingCustomMusic = false;
 let customSourceNode = null;
 let ambientStopFn = null;
 
+document.getElementById('btn-info').addEventListener('click', ()=>{
+  document.getElementById('info-panel').classList.toggle('hidden');
+});
+
 const musicInput = document.getElementById('music-input');
 const musicNameEl = document.getElementById('music-name');
 musicInput.addEventListener('change', (e)=>{
@@ -1508,6 +1536,7 @@ function startGame(){
   resetState();
   const nameInput = document.getElementById('player-name');
   playerName = (nameInput.value || '').trim() || 'Jugador';
+  gameStartTime = performance.now();
   grid = cellsToGrid(generateMazeCells(MAZE_W, MAZE_H), MAZE_W, MAZE_H);
   buildMazeMeshes();
   spawnNpcs();
@@ -1553,6 +1582,11 @@ function endGame(){
   document.getElementById('stat-hits').textContent = state.mummyHits;
   document.getElementById('stat-total').textContent = state.score;
   document.getElementById('result-player-name').textContent = playerName;
+
+  elapsedSeconds = Math.max(0, Math.round((performance.now() - gameStartTime)/1000));
+  const mm = Math.floor(elapsedSeconds/60);
+  const ss = String(elapsedSeconds%60).padStart(2,'0');
+  document.getElementById('stat-time').textContent = `${mm}:${ss}`;
 
   const tbody = document.querySelector('#results-table tbody');
   tbody.innerHTML = '';
@@ -1610,8 +1644,9 @@ document.getElementById('btn-share').addEventListener('click', async ()=>{
   text += 'IES Santa Engracia · STEAM 4.0 - SCS\n\n';
   text += `Jugador: ${playerName}\n`;
   text += `Puntuación final: ${state.score}\n`;
+  text += `Tiempo total: ${document.getElementById('stat-time').textContent}\n`;
   text += `Aciertos: ${state.correct}/${state.answers.length}\n`;
-  text += `Momias abatidas: ${state.mummyKills}\n`;
+  text += `Robots abatidos: ${state.mummyKills}\n`;
   text += `Golpes recibidos: ${state.mummyHits}\n\n`;
   text += 'Detalle de respuestas:\n';
   state.answers.forEach((a,i)=>{
