@@ -160,7 +160,9 @@
     position:static !important; width:100% !important; margin:0 !important;
     padding:14px !important; border-radius:7px !important; font-size:15px !important;
     font-weight:700 !important; letter-spacing:.02em;
+    background-color:#0f1e3d !important; border:1px solid #1e3660 !important; color:#e9edf2 !important;
   }
+  #vr-btn-slot button:hover{ background-color:#152a52 !important; }
   .hidden{display:none !important;}
 </style>
 </head>
@@ -186,13 +188,13 @@
 <!-- PANTALLA DE INICIO -->
 <div class="screen" id="overlay-start">
   <div class="card">
-    <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:0;">
-      <div>
+    <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:0;flex-wrap:nowrap;gap:10px;">
+      <div style="min-width:0;">
         <div class="eyebrow">IES Santa Engracia · STEAM 4.0 - SCS</div>
         <h1>Laberinto <span>VR</span> de Preguntas :-)</h1>
       </div>
       <button class="btn ghost" id="btn-info" title="Cómo jugar y formato del fichero de preguntas"
-        style="flex-shrink:0;width:38px;height:38px;padding:0;border-radius:50%;font-weight:800;font-size:16px;">?</button>
+        style="flex-shrink:0;width:38px;height:38px;padding:0;border-radius:50%;font-weight:800;font-size:17px;">⚙️</button>
     </div>
     <div class="sub">Un laberinto estilo arcade en realidad virtual para repasar preguntas (por defecto iniciación a la programación con MicroBit). Responde a los guardianes que encuentres por el camino y cuidado con los robots.</div>
 
@@ -258,8 +260,8 @@
 
     <div id="vr-btn-slot"></div>
     <div class="row" style="margin-top:10px;">
-      <button class="btn secondary" id="btn-desktop" style="flex:1;">🖥️ Probar en modo escritorio (WASD + ratón)</button>
-      <button class="btn secondary" id="btn-mobile" style="flex:1;">📱 Probar en modo móvil (controles táctiles)</button>
+      <button class="btn secondary" id="btn-desktop" style="flex:1;background:#681742;">🖥️ Jugar en modo escritorio</button>
+      <button class="btn secondary" id="btn-mobile" style="flex:1;background:#0E3E36;">📱 Jugar en modo móvil</button>
     </div>
     <div class="status" id="start-status"></div>
   </div>
@@ -569,6 +571,13 @@ function isFree(x,z,radius){
 function tryMove(pos, dx, dz, radius){
   if(isFree(pos.x+dx, pos.z, radius)) pos.x += dx;
   if(isFree(pos.x, pos.z+dz, radius)) pos.z += dz;
+}
+function shuffleArray(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
 }
 
 function buildMazeMeshes(){
@@ -983,7 +992,7 @@ function openQuestionPanel(npc){
   group.add(qPlane);
 
   const buttonMeshes = [];
-  const opts = npc.question.options;
+  const opts = shuffleArray(npc.question.options.slice());
   const totalH = opts.length*0.46;
   opts.forEach((opt,i)=>{
     const tex = makeLabelTexture(opt.text, { w:740,h:150, font:'bold 34px sans-serif', border:'#555f6b', lineHeight:38 });
