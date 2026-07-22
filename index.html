@@ -160,9 +160,9 @@
     position:static !important; width:100% !important; margin:0 !important;
     padding:14px !important; border-radius:7px !important; font-size:15px !important;
     font-weight:700 !important; letter-spacing:.02em;
-    background-color:#74238a !important; border:1px solid #1e3660 !important; color:#e9edf2 !important;
+    background-color:#ff8c1a !important; border:1px solid #ff9a33 !important; color:#ffffff !important;
   }
-  #vr-btn-slot button:hover{ background-color:#152a52 !important; }
+  #vr-btn-slot button:hover{ background-color:#ffa03d !important; }
   .hidden{display:none !important;}
 </style>
 </head>
@@ -1759,6 +1759,15 @@ if('xr' in navigator){
   navigator.xr.isSessionSupported('immersive-vr').then(supported=>{
     if(supported){
       const btn = VRButton.createButton(renderer);
+      // el texto por defecto de VRButton ("ENTER VR") se sustituye, y se vigila
+      // por si la propia librería lo vuelve a escribir de forma asíncrona
+      const relabelVrButton = ()=>{
+        if(btn.textContent.trim().toUpperCase() === 'ENTER VR'){
+          btn.textContent = 'ENTRAR en VR';
+        }
+      };
+      relabelVrButton();
+      new MutationObserver(relabelVrButton).observe(btn, { childList:true, characterData:true, subtree:true });
       // valida el nombre ANTES de que el propio VRButton abra la sesión inmersiva
       btn.addEventListener('click', (e)=>{
         if(!requireNameOrWarn()){
